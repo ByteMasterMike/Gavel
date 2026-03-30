@@ -1,0 +1,15 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: gavel
+      POSTGRES_PASSWORD: gavel
+      POSTGRES_DB: gavel
+    ports:
+      - "5432:5432"
+    volumes:
+      - gavel_pg:/var/lib/postgresql/data
+
+volumes:
+  gavel_pg:

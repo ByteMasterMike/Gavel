@@ -3,10 +3,18 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "dotenv -e .env --override -- next dev",
     "build": "next build",
-    "start": "next start",
-    "lint": "eslint"
+    "start": "dotenv -e .env --override -- next start",
+    "lint": "eslint",
+    "postinstall": "prisma generate",
+    "db:push": "dotenv -e .env --override -- prisma db push",
+    "db:seed": "dotenv -e .env --override -- prisma db seed",
+    "db:reset-dev": "dotenv -e .env --override -- tsx prisma/reset-dev.ts",
+    "db:migrate": "dotenv -e .env --override -- prisma migrate dev"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",
@@ -31,6 +39,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.2.1",
+    "dotenv-cli": "^8.0.0",
     "prisma": "^6.5.0",
     "tailwindcss": "^4",
     "tsx": "^4.19.3",

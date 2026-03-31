@@ -46,7 +46,10 @@ export default function RootLayout({
       suppressHydrationWarning
       className={`${geistMono.variable} ${newsreader.variable} ${notoSerif.variable} ${inter.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-background font-sans text-foreground selection:bg-primary/30">
+      <body
+        suppressHydrationWarning
+        className="min-h-full flex flex-col bg-background font-sans text-foreground selection:bg-primary/30"
+      >
         <Providers>{children}</Providers>
       </body>
     </html>

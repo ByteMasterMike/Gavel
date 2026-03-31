@@ -15,6 +15,32 @@ type MeHeader = {
   careerPoints: number;
 };
 
+/** Avoids Sun/Moon hydration mismatch: `resolvedTheme` is undefined on the server. */
+function ThemeToggleButton({ className }: { className?: string }) {
+  const { setTheme, resolvedTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
+  return (
+    <Button
+      type="button"
+      variant="ghost"
+      size="icon"
+      className={className}
+      aria-label="Toggle light or dark theme"
+      onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
+    >
+      {!mounted ? (
+        <span className="inline-block size-4 shrink-0" aria-hidden />
+      ) : resolvedTheme === "dark" ? (
+        <Sun className="size-4" />
+      ) : (
+        <Moon className="size-4" />
+      )}
+    </Button>
+  );
+}
+
 function NavLink({
   href,
   children,
@@ -114,16 +140,7 @@ export function AppHeader({ variant = "default" }: { variant?: "default" | "sove
             <Bell className="size-5" />
             <span className="absolute right-2 top-2 size-2 rounded-full bg-[#ffb3ac]" aria-hidden />
           </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="size-9 text-[#d1c5b4] hover:bg-[#393939] hover:text-[#e9c176]"
-            aria-label="Toggle light or dark theme"
-            onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
-          >
-            {resolvedTheme === "dark" ? <Sun className="size-4" /> : <Moon className="size-4" />}
-          </Button>
+          <ThemeToggleButton className="size-9 text-[#d1c5b4] hover:bg-[#393939] hover:text-[#e9c176]" />
           {status === "loading" ? (
             <span className="text-xs text-[#d1c5b4]">…</span>
           ) : session?.user ? (
@@ -203,16 +220,7 @@ export function AppHeader({ variant = "default" }: { variant?: "default" | "sove
             <span className="tabular-nums">Signed in</span>
           </div>
         )}
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          className="size-9 text-muted-foreground"
-          aria-label="Toggle light or dark theme"
-          onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
-        >
-          {resolvedTheme === "dark" ? <Sun className="size-4" /> : <Moon className="size-4" />}
-        </Button>
+        <ThemeToggleButton className="size-9 text-muted-foreground" />
         {status === "loading" ? (
           <span className="text-xs text-muted-foreground">…</span>
         ) : session?.user ? (

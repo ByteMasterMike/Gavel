@@ -207,7 +207,7 @@ export default function ResultsPage() {
                   </CardHeader>
                   <CardContent className="text-sm text-muted-foreground">
                     {data.ruling.llmFeedback ? (
-                      <p className="leading-relaxed">{data.ruling.llmFeedback}</p>
+                      <p className="whitespace-pre-wrap leading-relaxed">{data.ruling.llmFeedback}</p>
                     ) : (
                       <p>Evaluation summary will appear when the model returns feedback.</p>
                     )}

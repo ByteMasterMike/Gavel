@@ -1,6 +1,6 @@
 import type { Case, CaseDocument, Precedent, User, UserRuling } from "@prisma/client";
 import { getUtcTodayDailyCaseId } from "@/lib/dailyPolicy";
-import { evaluateReasoning } from "@/lib/llm/evaluateReasoning";
+import { evaluateReasoning, formatReasoningFeedbackForDisplay } from "@/lib/llm/evaluateReasoning";
 import { DEGRADED_LLM_MESSAGE, shouldDegradeLlmScoring } from "@/lib/tokenBudget";
 import { computeAccuracyScore } from "./accuracyScore";
 import { computePrescientJustice } from "./prescientJustice";
@@ -40,8 +40,11 @@ export async function scoreRuling(params: {
   const degradeReasoning = await shouldDegradeLlmScoring(user, caseRow.id, todaysDailyCaseId);
 
   const llm = degradeReasoning
-    ? { score: 0.5, feedback: DEGRADED_LLM_MESSAGE }
+    ? { score: 0.5, feedback: DEGRADED_LLM_MESSAGE, improvements: [] as string[] }
     : await evaluateReasoning({
+        studentVerdict: ruling.verdict,
+        studentSentenceText: ruling.sentenceText,
+        studentSentenceNumeric: ruling.sentenceNumeric,
         studentFindings: ruling.findingsOfFact,
         studentApplication: ruling.applicationOfLaw,
         studentMitigating: ruling.mitigatingFactors,
@@ -152,6 +155,6 @@ export async function scoreRuling(params: {
     judgeRankKey: rank.key,
     judgeRankTitle: rank.title,
     judgeRankDescription: rank.description,
-    llmFeedback: llm.feedback,
+    llmFeedback: formatReasoningFeedbackForDisplay(llm),
   };
 }

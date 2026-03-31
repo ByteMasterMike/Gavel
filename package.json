@@ -7,6 +7,8 @@
     "build": "next build",
     "start": "dotenv -e .env --override -- next start",
     "lint": "eslint",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "postinstall": "node scripts/prisma-generate.cjs",
     "db:push": "dotenv -e .env --override -- prisma db push",
     "db:deploy": "dotenv -e .env --override -- prisma migrate deploy",
@@ -45,6 +47,7 @@
     "prisma": "^6.5.0",
     "tailwindcss": "^4",
     "tsx": "^4.19.3",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.2"
   }
 }

@@ -1,5 +1,4 @@
 import type { Case, CaseDocument, Precedent, User, UserRuling } from "@prisma/client";
-import { jsonToStringArray } from "@/lib/jsonIds";
 import { evaluateReasoning } from "@/lib/llm/evaluateReasoning";
 import { computeAccuracyScore } from "./accuracyScore";
 import { computeStyleScore } from "./styleScore";
@@ -28,7 +27,7 @@ export async function scoreRuling(params: {
 }> {
   const { caseRow, ruling, user } = params;
 
-  const citedIds = jsonToStringArray(ruling.citedPrecedentIds);
+  const citedIds = ruling.citedPrecedentIds;
   const cited = caseRow.precedents.filter((p) => citedIds.includes(p.id));
   const citedPrecedentSummaries = cited
     .map((p) => `- ${p.name} (${p.citation}): ${p.summary.slice(0, 400)}`)
@@ -52,10 +51,10 @@ export async function scoreRuling(params: {
   );
 
   const styleParts = computeStyleScore({
-    citedPrecedentIds: citedIds,
+    citedPrecedentIds: ruling.citedPrecedentIds,
     hintsUsed: ruling.hintsUsed,
-    flaggedDocIds: jsonToStringArray(ruling.flaggedDocIds),
-    openedDocIds: jsonToStringArray(ruling.openedDocIds),
+    flaggedDocIds: ruling.flaggedDocIds,
+    openedDocIds: ruling.openedDocIds,
     verdictFlips: ruling.verdictFlips,
     startedAt: ruling.startedAt,
     submittedAt: ruling.submittedAt,

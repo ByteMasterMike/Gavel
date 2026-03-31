@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "dotenv -e .env --override -- next start",
     "lint": "eslint",
-    "postinstall": "prisma generate",
+    "postinstall": "node scripts/prisma-generate.cjs",
     "db:push": "dotenv -e .env --override -- prisma db push",
     "db:seed": "dotenv -e .env --override -- prisma db seed",
     "db:reset-dev": "dotenv -e .env --override -- tsx prisma/reset-dev.ts",

@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -73,29 +73,26 @@ model VerificationToken {
 }
 
 model Case {
-  id          String   @id @default(cuid())
-  title       String
-  tier        Int
-  kind        CaseKind
-  category    String
-  briefSummary String
-  parTimeMinutes Int
+  id                       String   @id @default(cuid())
+  title                    String
+  tier                     Int
+  kind                     CaseKind
+  category                 String
+  briefSummary             String   @db.Text
+  parTimeMinutes           Int
+  correctVerdict           String
+  correctSentenceText      String   @db.Text
+  correctSentenceNumeric   Float?
+  correctReasoningSummary  String   @db.Text
+  actualOpinionExcerpt     String   @db.Text
+  isOverturned             Boolean  @default(false)
+  appellateReversalSummary String?  @db.Text
+  whyExplanation           String   @db.Text
+  maxPrecedents            Int      @default(5)
 
-  correctVerdict        String
-  correctSentenceText   String
-  correctSentenceNumeric Float?
-  correctReasoningSummary String
-  actualOpinionExcerpt  String
-
-  isOverturned            Boolean @default(false)
-  appellateReversalSummary String?
-  whyExplanation          String
-
-  maxPrecedents Int @default(5)
-
-  documents CaseDocument[]
-  precedents Precedent[]
-  rulings   UserRuling[]
+  documents       CaseDocument[]
+  precedents      Precedent[]
+  rulings         UserRuling[]
   dailyChallenges DailyChallenge[]
 
   createdAt DateTime @default(now())
@@ -106,7 +103,7 @@ model CaseDocument {
   id           String  @id @default(cuid())
   caseId       String
   title        String
-  content      String
+  content      String  @db.Text
   sortOrder    Int     @default(0)
   isAdmissible Boolean @default(true)
   isMaterial   Boolean @default(false)
@@ -121,7 +118,7 @@ model Precedent {
   caseId           String
   name             String
   citation         String
-  summary          String
+  summary          String  @db.Text
   sortOrder        Int     @default(0)
   isRelevant       Boolean @default(false)
   weightMultiplier Float   @default(1.0)
@@ -137,30 +134,30 @@ model UserRuling {
   caseId String
 
   verdict           String
-  sentenceText      String
+  sentenceText      String   @db.Text
   sentenceNumeric   Float?
-  findingsOfFact    String
-  applicationOfLaw  String
-  mitigatingFactors String
+  findingsOfFact    String   @db.Text
+  applicationOfLaw  String   @db.Text
+  mitigatingFactors String   @db.Text
 
-  flaggedDocIds      Json @default("[]")
-  starredDocIds      Json @default("[]")
-  citedPrecedentIds  Json @default("[]")
-  openedDocIds       Json @default("[]")
-  hintsUsed          Int      @default(0)
-  verdictFlips       Int      @default(0)
+  flaggedDocIds     String[] @default([])
+  starredDocIds     String[] @default([])
+  citedPrecedentIds String[] @default([])
+  openedDocIds      String[] @default([])
+  hintsUsed         Int      @default(0)
+  verdictFlips      Int      @default(0)
 
   startedAt   DateTime
   submittedAt DateTime
 
-  accuracyScore Int?
-  styleScore    Int?
-  totalScore    Int?
-  llmScoreRaw   Float?
-  llmFeedback   String?
-  scoreBreakdown Json?
-  judgeRank     String?
-  judgeRankDescription String?
+  accuracyScore        Int?
+  styleScore           Int?
+  totalScore           Int?
+  llmScoreRaw          Float?
+  llmFeedback          String? @db.Text
+  scoreBreakdown       Json?
+  judgeRank            String?
+  judgeRankDescription String? @db.Text
 
   status RulingStatus @default(PENDING)
 
@@ -173,7 +170,7 @@ model UserRuling {
 
 model DailyChallenge {
   id     String   @id @default(cuid())
-  date   DateTime @unique
+  date   DateTime @unique @db.Date
   caseId String
 
   case Case @relation(fields: [caseId], references: [id], onDelete: Cascade)

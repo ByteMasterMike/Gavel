@@ -1,11 +1,11 @@
 # The Gavel (MVP)
 
-Next.js full-stack MVP: **Briefing → Evidence → Law library → Ruling → Reveal & scoring** with Prisma (SQLite locally by default), NextAuth (Google + dev credentials), and optional Anthropic scoring.
+Next.js full-stack MVP: **Briefing → Evidence → Law library → Ruling → Reveal & scoring** with Prisma (**PostgreSQL**), NextAuth (Google + dev credentials), and optional Anthropic scoring.
 
 ## Prerequisites
 
 - Node 20+
-- Default local DB is **SQLite** (`prisma/dev.db` via `DATABASE_URL=file:./dev.db`). Optional: PostgreSQL + `docker-compose.yml` if you switch the Prisma provider.
+- A **PostgreSQL** database. [Nhost](https://nhost.io/) (or any Postgres host) works well: use the connection URI as `DATABASE_URL`. If the provider expects TLS, include `?sslmode=require` (or the equivalent query params they document).
 
 ## Setup
 
@@ -15,14 +15,16 @@ Next.js full-stack MVP: **Briefing → Evidence → Law library → Ruling → R
    cp .env.example .env
    ```
 
-2. Set `DATABASE_URL`, `AUTH_SECRET` (e.g. `openssl rand -base64 32`), and optionally `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`, `ANTHROPIC_API_KEY`.
+2. Set `DATABASE_URL` to your Postgres URI, `AUTH_SECRET` (e.g. `openssl rand -base64 32`), and optionally `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`, `ANTHROPIC_API_KEY`.
 
-3. Apply schema and seed:
+3. Apply migrations and seed:
 
    ```bash
-   npm run db:push
+   npx prisma migrate deploy
    npm run db:seed
    ```
+
+   For local iteration without migration history, you can use `npm run db:push` instead of `migrate deploy` (not recommended for production).
 
 4. Run the app:
 
@@ -33,6 +35,10 @@ Next.js full-stack MVP: **Briefing → Evidence → Law library → Ruling → R
 - **Development sign-in**: On the home page, use **Dev sign-in** (no Google keys required).
 - **Google sign-in**: Configure OAuth credentials and add redirect URI `http://localhost:3000/api/auth/callback/google`.
 
+### Deploying (e.g. Vercel + Nhost Postgres)
+
+Set the same `DATABASE_URL` in the host’s environment (Vercel: Project → Settings → Environment Variables). Redeploy after changing secrets. Run `npx prisma migrate deploy` against the **production** database at least once so the schema exists before users hit the app.
+
 ## Scripts
 
 | Command            | Description                |
@@ -40,7 +46,7 @@ Next.js full-stack MVP: **Briefing → Evidence → Law library → Ruling → R
 | `npm run dev`      | Start Next.js dev server   |
 | `npm run build`    | Production build           |
 | `npm run db:seed`  | Seed sample cases          |
-| `npm run db:push`  | Sync schema to SQLite (local) |
+| `npm run db:push`  | Sync schema to the database without using migration files (dev only) |
 | `npm run db:reset-dev` | Delete `dev@thegavel.local` and rulings; sign in again for a clean dev account |
 | `npx prisma migrate deploy` | Apply migrations (PostgreSQL workflows) |
 

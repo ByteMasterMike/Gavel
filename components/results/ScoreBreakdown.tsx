@@ -27,7 +27,7 @@ export function ScoreBreakdown({ breakdown, animate = true }: Props) {
       clearTimeout(t3);
       clearTimeout(t4);
     };
-  }, [animate, breakdown]);
+  }, [animate]);
 
   const acc = breakdown.accuracy;
   const sty = breakdown.style;

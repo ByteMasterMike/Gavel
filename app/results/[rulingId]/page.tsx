@@ -39,6 +39,8 @@ export default function ResultsPage() {
 
   useEffect(() => {
     let stop = false;
+    let intervalId: ReturnType<typeof setInterval> | null = null;
+
     const tick = async () => {
       const res = await fetch(`/api/rulings/${rulingId}`);
       if (!res.ok) {
@@ -49,13 +51,18 @@ export default function ResultsPage() {
       if (!stop) {
         setData(j);
         setError(null);
+        if (j.ruling.status === "SCORED" && intervalId !== null) {
+          clearInterval(intervalId);
+          intervalId = null;
+        }
       }
     };
+
     void tick();
-    const id = setInterval(() => void tick(), 1200);
+    intervalId = setInterval(() => void tick(), 1200);
     return () => {
       stop = true;
-      clearInterval(id);
+      if (intervalId !== null) clearInterval(intervalId);
     };
   }, [rulingId]);
 
@@ -112,7 +119,7 @@ export default function ResultsPage() {
               )}
             </CardContent>
           </Card>
-          <ScoreBreakdown breakdown={data.ruling.scoreBreakdown} />
+          <ScoreBreakdown key={rulingId} breakdown={data.ruling.scoreBreakdown} />
         </>
       )}
 

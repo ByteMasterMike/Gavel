@@ -4,12 +4,15 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
+import { Award, Brain, Flame } from "lucide-react";
 import { RevealScreen, type RevealPayload } from "@/components/results/RevealScreen";
 import { ScoreBreakdown } from "@/components/results/ScoreBreakdown";
 import type { ScoreBreakdownPayload } from "@/types";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { JudicialShell } from "@/components/shell/JudicialShell";
+import { AppSidebarResults } from "@/components/shell/AppSidebar";
 
 type PollResponse = {
   ruling: {
@@ -67,74 +70,164 @@ export default function ResultsPage() {
   }, [rulingId]);
 
   if (status === "loading") {
-    return <p className="text-center text-muted-foreground">Loading…</p>;
+    return (
+      <JudicialShell sidebar={<AppSidebarResults />}>
+        <p className="p-8 text-center text-muted-foreground">Loading…</p>
+      </JudicialShell>
+    );
   }
 
   if (error || !data) {
     return (
-      <p className="text-center text-destructive" role="alert">
-        {error ?? "Loading results…"}
-      </p>
+      <JudicialShell sidebar={<AppSidebarResults />}>
+        <p className="p-8 text-center text-destructive" role="alert">
+          {error ?? "Loading results…"}
+        </p>
+      </JudicialShell>
     );
   }
 
   const pending = data.ruling.status !== "SCORED";
+  const prescientPts = data.ruling.scoreBreakdown?.accuracy.prescientJustice?.points ?? 0;
+  const headline = data.reveal.isOverturned ? "The overturned reveal" : "Case reveal";
+  const accuracyPct =
+    data.ruling.scoreBreakdown && data.ruling.scoreBreakdown.accuracy.total > 0
+      ? Math.min(
+          100,
+          Math.round(
+            (data.ruling.scoreBreakdown.accuracy.reasoningPoints / 5000) * 100,
+          ),
+        )
+      : null;
 
-  return (
-    <div className="mx-auto flex max-w-4xl flex-col gap-10 pb-20">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <Link href="/" className={cn(buttonVariants({ variant: "ghost" }))}>
-          ← Home
-        </Link>
-        {pending && (
-          <p className="text-sm text-muted-foreground animate-pulse">Deliberating… scoring your ruling</p>
+  const main = (
+    <div className="px-4 py-8 md:px-8 lg:px-10">
+      <div className="mx-auto max-w-5xl space-y-8">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-primary">
+              Docket record · case closed
+            </p>
+            <h1 className="mt-2 font-heading text-3xl font-semibold tracking-tight text-foreground md:text-4xl">
+              {headline}
+            </h1>
+            <p className="mt-1 text-sm text-muted-foreground">{data.reveal.title}</p>
+          </div>
+          <div className="flex flex-col items-end gap-2">
+            {prescientPts > 0 && !pending && (
+              <div className="flex items-center gap-2 rounded-md border border-primary/40 bg-primary/10 px-3 py-2">
+                <Award className="size-5 text-primary" />
+                <div className="text-right text-xs">
+                  <p className="font-semibold uppercase tracking-wide text-primary">Award granted</p>
+                  <p className="text-foreground">Prescient Justice · +{prescientPts} pts</p>
+                </div>
+              </div>
+            )}
+            {pending && (
+              <p className="text-sm text-muted-foreground animate-pulse">Deliberating… scoring your ruling</p>
+            )}
+          </div>
+        </div>
+
+        <RevealScreen
+          player={{
+            verdict: data.ruling.verdict,
+            sentenceText: data.ruling.sentenceText,
+            sentenceNumeric: data.ruling.sentenceNumeric,
+            findingsOfFact: data.ruling.findingsOfFact,
+            applicationOfLaw: data.ruling.applicationOfLaw,
+            mitigatingFactors: data.ruling.mitigatingFactors,
+          }}
+          reveal={data.reveal}
+          prescientJustice={
+            data.ruling.scoreBreakdown?.accuracy.prescientJustice &&
+            data.ruling.scoreBreakdown.accuracy.prescientJustice.points > 0
+              ? {
+                  points: data.ruling.scoreBreakdown.accuracy.prescientJustice.points,
+                  debatePrompt: data.ruling.scoreBreakdown.accuracy.prescientJustice.debatePrompt,
+                }
+              : null
+          }
+        />
+
+        {!pending && data.ruling.scoreBreakdown && (
+          <>
+            <section className="space-y-4">
+              <h2 className="font-heading text-xl text-foreground">Juridical analysis</h2>
+              <div className="grid gap-4 md:grid-cols-2">
+                <Card className="border-primary/25 bg-card/80">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                      <Brain className="size-4 text-primary" />
+                      Reasoning alignment
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="text-sm text-muted-foreground">
+                    {data.ruling.llmFeedback ? (
+                      <p className="leading-relaxed">{data.ruling.llmFeedback}</p>
+                    ) : (
+                      <p>Evaluation summary will appear when the model returns feedback.</p>
+                    )}
+                    {accuracyPct !== null && (
+                      <p className="mt-3 text-xs text-foreground">
+                        Reasoning score index ~{accuracyPct}% of band (LLM component of accuracy).
+                      </p>
+                    )}
+                  </CardContent>
+                </Card>
+                <Card className="border-border bg-card/60">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                      <Flame className="size-4 text-primary" />
+                      Score snapshot
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2 text-sm text-muted-foreground">
+                    <p>
+                      Verdict match:{" "}
+                      <span className="font-medium text-foreground">
+                        {data.ruling.scoreBreakdown.accuracy.verdictMatch ? "Yes" : "No"}
+                      </span>
+                    </p>
+                    <p>
+                      Style total:{" "}
+                      <span className="font-medium text-foreground">
+                        {data.ruling.scoreBreakdown.style.total.toLocaleString()}
+                      </span>
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+            </section>
+
+            <Card className="border-primary/40 bg-gradient-to-br from-primary/15 via-card to-transparent">
+              <CardHeader>
+                <CardTitle className="font-heading text-2xl text-foreground">{data.ruling.judgeRank}</CardTitle>
+                <p className="text-sm text-muted-foreground">{data.ruling.judgeRankDescription}</p>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+                <div>
+                  <p className="text-xs uppercase tracking-widest text-primary">Case XP earned</p>
+                  <p className="font-heading text-4xl font-semibold tabular-nums text-primary">
+                    +{data.ruling.totalScore?.toLocaleString() ?? "—"}
+                  </p>
+                </div>
+                <Link href="/" className={cn(buttonVariants({ variant: "outline" }), "border-primary/50 shrink-0")}>
+                  Archive case file
+                </Link>
+              </CardContent>
+            </Card>
+
+            <ScoreBreakdown key={rulingId} breakdown={data.ruling.scoreBreakdown} />
+          </>
         )}
+
+        <Link href="/" className={cn(buttonVariants(), "inline-flex")}>
+          Return to docket
+        </Link>
       </div>
-
-      <RevealScreen
-        player={{
-          verdict: data.ruling.verdict,
-          sentenceText: data.ruling.sentenceText,
-          sentenceNumeric: data.ruling.sentenceNumeric,
-          findingsOfFact: data.ruling.findingsOfFact,
-          applicationOfLaw: data.ruling.applicationOfLaw,
-          mitigatingFactors: data.ruling.mitigatingFactors,
-        }}
-        reveal={data.reveal}
-        prescientJustice={
-          data.ruling.scoreBreakdown?.accuracy.prescientJustice &&
-          data.ruling.scoreBreakdown.accuracy.prescientJustice.points > 0
-            ? {
-                points: data.ruling.scoreBreakdown.accuracy.prescientJustice.points,
-                debatePrompt: data.ruling.scoreBreakdown.accuracy.prescientJustice.debatePrompt,
-              }
-            : null
-        }
-      />
-
-      {!pending && data.ruling.scoreBreakdown && (
-        <>
-          <Card className="border-primary/30 bg-gradient-to-br from-primary/10 to-transparent">
-            <CardHeader>
-              <CardTitle className="font-heading text-2xl">{data.ruling.judgeRank}</CardTitle>
-              <p className="text-sm text-muted-foreground">{data.ruling.judgeRankDescription}</p>
-            </CardHeader>
-            <CardContent>
-              <p className="text-3xl font-bold tracking-tight">
-                {data.ruling.totalScore?.toLocaleString()} pts
-              </p>
-              {data.ruling.llmFeedback && (
-                <p className="mt-3 text-sm text-muted-foreground">{data.ruling.llmFeedback}</p>
-              )}
-            </CardContent>
-          </Card>
-          <ScoreBreakdown key={rulingId} breakdown={data.ruling.scoreBreakdown} />
-        </>
-      )}
-
-      <Link href="/" className={cn(buttonVariants(), "self-start")}>
-        Return to docket
-      </Link>
     </div>
   );
+
+  return <JudicialShell sidebar={<AppSidebarResults />}>{main}</JudicialShell>;
 }

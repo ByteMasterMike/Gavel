@@ -13,6 +13,7 @@ type Me = {
   tierAccuracyWarning: boolean;
   rollingVerdictRate: number | null;
   pointsToNextTier: number | null;
+  scoredRulingsCount?: number;
 };
 
 export function CareerSection() {
@@ -48,42 +49,57 @@ export function CareerSection() {
       ? "—"
       : `${(me.rollingVerdictRate * 100).toFixed(0)}%`;
 
+  const verdicts = me.scoredRulingsCount ?? 0;
+
   return (
-    <Card>
+    <Card className="border-primary/35 bg-card/80 shadow-[0_0_0_1px_oklch(0.72_0.11_85_/_12%)]">
       <CardHeader className="pb-2">
-        <CardTitle className="text-base">Career</CardTitle>
-        <CardDescription>Streak, tier, and rolling verdict accuracy</CardDescription>
+        <CardTitle className="font-heading text-lg tracking-tight text-primary">Current standing</CardTitle>
+        <CardDescription className="text-muted-foreground">Career points, streak, and accuracy</CardDescription>
       </CardHeader>
-      <CardContent className="grid gap-4 sm:grid-cols-2">
-        <div>
-          <p className="text-xs uppercase text-muted-foreground">Streak</p>
-          <p className="text-2xl font-bold">{me.streakDays} days</p>
-          <p className="text-xs text-muted-foreground">Morning Docket (consecutive local days)</p>
+      <CardContent className="space-y-5">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <p className="font-heading text-3xl font-semibold tabular-nums text-foreground">
+              {me.careerPoints.toLocaleString()}{" "}
+              <span className="text-lg font-normal text-primary">CP</span>
+            </p>
+            <p className="mt-1 inline-flex rounded border border-primary/40 px-2 py-0.5 text-xs font-medium uppercase tracking-wider text-primary">
+              Tier {me.currentTier} · {me.tierTitle}
+            </p>
+          </div>
         </div>
         <div>
-          <p className="text-xs uppercase text-muted-foreground">Rolling accuracy</p>
-          <p className="text-2xl font-bold">{accuracyLabel}</p>
-          <p className="text-xs text-muted-foreground">Last 10 scored rulings (verdict match)</p>
+          <div className="flex justify-between text-xs uppercase text-muted-foreground">
+            <span>Daily streak</span>
+            <span className="tabular-nums text-foreground">{me.streakDays} day(s)</span>
+          </div>
+          <Progress className="mt-2 h-2 bg-muted" value={Math.min(100, me.streakDays * 10)} />
+          <p className="mt-1 text-xs text-muted-foreground">Morning Docket · consecutive local days</p>
         </div>
-        <div className="sm:col-span-2">
-          <p className="text-xs uppercase text-muted-foreground">Tier</p>
-          <p className="text-lg font-semibold">{me.tierTitle}</p>
-          {me.pointsToNextTier !== null && nextFloor !== null ? (
-            <>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Progress to next tier ({nextFloor.toLocaleString()} pts):{" "}
-                {me.pointsToNextTier.toLocaleString()} pts to go
-              </p>
-              <Progress className="mt-2 h-2" value={progressPct} />
-            </>
-          ) : (
-            <p className="mt-1 text-xs text-muted-foreground">Top tier — no further point floor.</p>
-          )}
+        <div className="grid grid-cols-2 gap-4 border-t border-border pt-4">
+          <div>
+            <p className="text-xs uppercase text-muted-foreground">Verdicts</p>
+            <p className="font-heading text-2xl font-semibold tabular-nums">{verdicts}</p>
+          </div>
+          <div>
+            <p className="text-xs uppercase text-muted-foreground">Accuracy</p>
+            <p className="font-heading text-2xl font-semibold tabular-nums">{accuracyLabel}</p>
+            <p className="text-[10px] text-muted-foreground">Last 10 scored</p>
+          </div>
         </div>
+        {me.pointsToNextTier !== null && nextFloor !== null ? (
+          <div>
+            <p className="text-xs text-muted-foreground">
+              Next tier floor {nextFloor.toLocaleString()} pts · {me.pointsToNextTier.toLocaleString()} to go
+            </p>
+            <Progress className="mt-2 h-1.5" value={progressPct} />
+          </div>
+        ) : null}
         {me.tierAccuracyWarning ? (
-          <div className="sm:col-span-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-950 dark:text-amber-100">
-            Your recent verdict accuracy is below your rank. Improve your rolling match rate or you
-            may be demoted after repeated rulings.
+          <div className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-950 dark:text-amber-100">
+            Your recent verdict accuracy is below your rank. Improve your rolling match rate or you may be
+            demoted after repeated rulings.
           </div>
         ) : null}
       </CardContent>

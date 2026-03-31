@@ -47,12 +47,17 @@ export async function GET() {
     const rollingVerdictRate =
       rawRate === null ? null : Math.round(rawRate * 100) / 100;
 
+    const verdictCount = await prisma.userRuling.count({
+      where: { userId: id, status: "SCORED" },
+    });
+
     return NextResponse.json({
       user: {
         ...user,
         tierTitle: tierTitle(user.currentTier),
         rollingVerdictRate,
         pointsToNextTier: pointsToNextTier(user.careerPoints, user.currentTier),
+        scoredRulingsCount: verdictCount,
       },
     });
   } catch (e) {

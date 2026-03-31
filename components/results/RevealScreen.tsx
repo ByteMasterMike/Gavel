@@ -40,12 +40,12 @@ type Props = {
 
 export function RevealScreen({ player, reveal, prescientJustice }: Props) {
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-2 text-primary">
-        <Scale className="size-8" />
+    <div className="space-y-8">
+      <div className="flex items-center gap-2 text-primary lg:hidden">
+        <Scale className="size-7" />
         <div>
-          <h2 className="font-heading text-2xl font-bold tracking-tight">The reveal</h2>
-          <p className="text-sm text-muted-foreground">{reveal.title}</p>
+          <h2 className="font-heading text-xl font-semibold tracking-tight">The reveal</h2>
+          <p className="text-xs text-muted-foreground">{reveal.title}</p>
         </div>
       </div>
 
@@ -54,10 +54,12 @@ export function RevealScreen({ player, reveal, prescientJustice }: Props) {
         educational and entertainment purposes only.
       </p>
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Card>
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Card className="border-primary/35 bg-gradient-to-br from-card via-[color-mix(in_oklab,var(--judicial-panel)_35%,transparent)] to-accent/25">
           <CardHeader className="pb-2">
-            <CardTitle className="text-base text-muted-foreground">Your ruling</CardTitle>
+            <CardTitle className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
+              Your decision
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
             <p>
@@ -81,9 +83,11 @@ export function RevealScreen({ player, reveal, prescientJustice }: Props) {
           </CardContent>
         </Card>
 
-        <Card className="border-primary/30">
+        <Card className="border-primary/30 bg-card/90">
           <CardHeader className="pb-2">
-            <CardTitle className="text-base">Actual ruling</CardTitle>
+            <CardTitle className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+              Trial outcome (scored)
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
             <p>

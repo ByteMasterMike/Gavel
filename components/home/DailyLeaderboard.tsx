@@ -44,10 +44,10 @@ export function DailyLeaderboard() {
 
   if (status === "loading") {
     return (
-      <Card>
+      <Card className="border-primary/25 bg-card/60">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Trophy className="size-5 text-amber-400" />
+          <CardTitle className="flex items-center gap-2 font-heading text-lg text-primary">
+            <Trophy className="size-5 text-primary" />
             Daily leaderboard
           </CardTitle>
           <CardDescription>Best score per judge on today&apos;s Morning Docket case.</CardDescription>
@@ -61,10 +61,10 @@ export function DailyLeaderboard() {
 
   if (status === "error" || !data) {
     return (
-      <Card>
+      <Card className="border-primary/25 bg-card/60">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Trophy className="size-5 text-amber-400" />
+          <CardTitle className="flex items-center gap-2 font-heading text-lg text-primary">
+            <Trophy className="size-5 text-primary" />
             Daily leaderboard
           </CardTitle>
         </CardHeader>
@@ -80,10 +80,10 @@ export function DailyLeaderboard() {
   }
 
   return (
-    <Card>
+    <Card className="border-primary/25 bg-card/60">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-base">
-          <Trophy className="size-5 text-amber-400" />
+        <CardTitle className="flex items-center gap-2 font-heading text-lg text-primary">
+          <Trophy className="size-5 text-primary" />
           Daily leaderboard
         </CardTitle>
         <CardDescription>

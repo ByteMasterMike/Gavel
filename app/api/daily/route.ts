@@ -16,7 +16,7 @@ export async function GET(req: Request) {
         where: { date: today },
         select: {
           date: true,
-          case: { select: { id: true } },
+          case: { select: { id: true, title: true, tier: true, category: true } },
         },
       });
 

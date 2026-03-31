@@ -9,10 +9,13 @@ import { RulingTemplate } from "./RulingTemplate";
 import { useCaseSession } from "./CaseSessionContext";
 import type { GamePhase, PublicCasePayload } from "@/types";
 import { GAME_PHASES } from "@/types";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { JudicialShell } from "@/components/shell/JudicialShell";
+import { AppSidebarHome, AppSidebarTrial } from "@/components/shell/AppSidebar";
+import Link from "next/link";
 
 const PHASE_LABEL: Record<GamePhase, string> = {
   briefing: "Briefing room",
@@ -20,6 +23,58 @@ const PHASE_LABEL: Record<GamePhase, string> = {
   library: "Law library",
   ruling: "Your ruling",
 };
+
+function LegalPadPanel({
+  kind,
+  phase,
+  submitting,
+  onSubmit,
+  onBack,
+}: {
+  kind: PublicCasePayload["kind"];
+  phase: GamePhase;
+  submitting: boolean;
+  onSubmit: () => void;
+  onBack: () => void;
+}) {
+  if (phase !== "ruling") {
+    return (
+      <div className="flex h-full flex-col border-border bg-card/95 p-5 shadow-inner xl:border-l">
+        <div className="mb-4">
+          <h2 className="font-heading text-lg text-foreground">Virtual Legal Pad</h2>
+          <p className="text-xs uppercase tracking-wide text-muted-foreground">Drafting preliminary verdict</p>
+        </div>
+        <p className="text-sm text-muted-foreground">
+          Complete evidence, library, and briefing steps. Your ruling draft unlocks in the final phase.
+        </p>
+        <div className="mt-6 rounded-lg border border-dashed border-primary/30 bg-muted/20 p-4 text-center text-xs text-muted-foreground">
+          Locked until &ldquo;Prior rulings&rdquo; phase
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex h-full min-h-0 flex-col gap-4 overflow-y-auto border-border bg-card/95 p-5 xl:border-l">
+      <div>
+        <h2 className="font-heading text-lg text-foreground">Virtual Legal Pad</h2>
+        <p className="text-xs uppercase tracking-wide text-muted-foreground">Drafting preliminary verdict</p>
+      </div>
+      <RulingTemplate kind={kind} className="max-w-none space-y-5" />
+      <div className="mt-auto flex flex-col gap-2 border-t border-border pt-4">
+        <Button type="button" className="w-full" disabled={submitting} onClick={() => void onSubmit()}>
+          {submitting ? "Submitting…" : "Finalize decision"}
+        </Button>
+        <Button type="button" variant="ghost" className="w-full text-muted-foreground" disabled>
+          Save draft
+        </Button>
+        <Button type="button" variant="ghost" size="sm" onClick={onBack}>
+          Back to library
+        </Button>
+      </div>
+    </div>
+  );
+}
 
 export function CasePlayClient({ caseId }: { caseId: string }) {
   const router = useRouter();
@@ -53,8 +108,7 @@ export function CasePlayClient({ caseId }: { caseId: string }) {
     const verdict = String(fd.get("verdict") ?? "");
     const sentenceText = String(fd.get("sentenceText") ?? "");
     const sn = fd.get("sentenceNumeric");
-    const sentenceNumeric =
-      sn === "" || sn === null ? null : Number(sn);
+    const sentenceNumeric = sn === "" || sn === null ? null : Number(sn);
     const findingsOfFact = String(fd.get("findingsOfFact") ?? "");
     const applicationOfLaw = String(fd.get("applicationOfLaw") ?? "");
     const mitigatingFactors = String(fd.get("mitigatingFactors") ?? "");
@@ -111,53 +165,84 @@ export function CasePlayClient({ caseId }: { caseId: string }) {
 
   if (!session?.user) {
     return (
-      <Card className="mx-auto max-w-md">
-        <CardHeader>
-          <CardTitle>Sign in to play</CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-2">
-          {process.env.NODE_ENV === "development" && (
-            <Button type="button" onClick={() => signIn("dev", { callbackUrl: `/case/${caseId}` })}>
-              Dev sign-in
-            </Button>
-          )}
-          <Button type="button" variant="secondary" onClick={() => signIn("google", { callbackUrl: `/case/${caseId}` })}>
-            Continue with Google
-          </Button>
-        </CardContent>
-      </Card>
+      <JudicialShell sidebar={<AppSidebarHome active="docket" />}>
+        <div className="flex min-h-[50vh] items-center justify-center p-6">
+          <Card className="w-full max-w-md border-primary/25">
+            <CardHeader>
+              <CardTitle className="font-heading">Sign in to play</CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-2">
+              {process.env.NODE_ENV === "development" && (
+                <Button type="button" onClick={() => signIn("dev", { callbackUrl: `/case/${caseId}` })}>
+                  Dev sign-in
+                </Button>
+              )}
+              <Button type="button" variant="secondary" onClick={() => signIn("google", { callbackUrl: `/case/${caseId}` })}>
+                Continue with Google
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </JudicialShell>
     );
   }
 
-  if (loadError) {
+  if (loadError && !state.caseData) {
     return (
-      <p className="text-center text-destructive" role="alert">
-        {loadError}
-      </p>
+      <JudicialShell sidebar={<AppSidebarTrial phase="briefing" onPhaseNavigate={() => {}} />}>
+        <div className="p-8 text-center">
+          <p className="text-destructive" role="alert">
+            {loadError}
+          </p>
+          <Link href="/" className={cn(buttonVariants({ variant: "link" }), "mt-4 inline-block")}>
+            Return to docket
+          </Link>
+        </div>
+      </JudicialShell>
     );
   }
 
   if (!state.caseData) {
     return (
-      <div className="flex min-h-[40vh] items-center justify-center text-muted-foreground">
-        Loading case file…
-      </div>
+      <JudicialShell
+        sidebar={<AppSidebarTrial phase="briefing" onPhaseNavigate={() => {}} />}
+      >
+        <div className="flex min-h-[40vh] items-center justify-center text-muted-foreground">
+          Loading case file…
+        </div>
+      </JudicialShell>
     );
   }
 
   const c = state.caseData;
   const phaseIndex = GAME_PHASES.indexOf(state.phase);
 
-  return (
-    <div className="mx-auto flex max-w-4xl flex-col gap-6 pb-16">
-      <header className="space-y-2">
-        <div className="flex flex-wrap items-center gap-2">
-          <Badge variant="outline">Tier {c.tier}</Badge>
-          <Badge variant="secondary">{c.kind === "CRIMINAL" ? "Criminal" : "Civil"}</Badge>
-          <span className="text-sm text-muted-foreground">{c.category}</span>
+  const navigateTrial = (p: GamePhase) => {
+    const ti = GAME_PHASES.indexOf(p);
+    if (ti <= phaseIndex) setPhase(p);
+  };
+
+  const center = (
+    <div
+      className={cn(
+        "min-h-0 flex-1 space-y-6 overflow-y-auto px-4 py-6 md:px-8",
+        state.phase !== "ruling" && "xl:pr-2",
+      )}
+    >
+      <div className="space-y-3 border-b border-border pb-4">
+        <div className="flex flex-wrap items-center gap-2 text-xs uppercase tracking-wide text-primary">
+          <span>Docket</span>
+          <span className="text-muted-foreground">·</span>
+          <span className="text-muted-foreground">{c.category}</span>
         </div>
-        <h1 className="font-heading text-2xl font-bold tracking-tight md:text-3xl">{c.title}</h1>
-        <nav className="flex flex-wrap gap-2" aria-label="Case phases">
+        <h1 className="font-heading text-2xl font-semibold tracking-tight text-foreground md:text-3xl">{c.title}</h1>
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge variant="outline" className="border-primary/40">
+            Tier {c.tier}
+          </Badge>
+          <Badge variant="secondary">{c.kind === "CRIMINAL" ? "Criminal" : "Civil"}</Badge>
+        </div>
+        <nav className="flex flex-wrap gap-2 lg:hidden" aria-label="Case phases">
           {GAME_PHASES.map((p, i) => (
             <Button
               key={p}
@@ -172,67 +257,96 @@ export function CasePlayClient({ caseId }: { caseId: string }) {
             </Button>
           ))}
         </nav>
-      </header>
+      </div>
 
-      {state.phase === "briefing" && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Case overview</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4 text-sm leading-relaxed text-muted-foreground">
-            <p className="text-base text-foreground">{c.briefSummary}</p>
-            <p>
-              Par time: <span className="font-medium text-foreground">{c.parTimeMinutes} min</span>{" "}
-              (speed is a small style factor — take the time you need).
+      <div
+        className={cn(
+          "rounded-xl border border-primary/25 bg-gradient-to-b from-card to-[color-mix(in_oklab,var(--judicial-panel)_25%,var(--card))] p-4 shadow-sm md:p-6",
+        )}
+      >
+        {state.phase === "briefing" && (
+          <div className="space-y-4">
+            <h2 className="font-heading text-xl text-foreground">Case overview</h2>
+            <p className="text-sm leading-relaxed text-foreground/90">{c.briefSummary}</p>
+            <p className="text-sm text-muted-foreground">
+              Par time: <span className="font-medium text-foreground">{c.parTimeMinutes} min</span> (speed is a small
+              style factor).
             </p>
             <Button type="button" onClick={() => nextPhase()}>
               Enter evidence locker
             </Button>
-          </CardContent>
-        </Card>
-      )}
-
-      {state.phase === "evidence" && (
-        <div className="space-y-4">
-          <EvidenceLocker />
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="ghost" onClick={() => setPhase("briefing")}>
-              Back
-            </Button>
-            <Button type="button" onClick={() => nextPhase()}>
-              Continue to law library
-            </Button>
           </div>
-        </div>
-      )}
+        )}
 
-      {state.phase === "library" && (
-        <div className="space-y-4">
-          <LawLibrary caseId={c.id} precedents={c.precedents} kind={c.kind} />
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="ghost" onClick={() => setPhase("evidence")}>
-              Back
-            </Button>
-            <Button type="button" onClick={() => nextPhase()}>
-              Draft ruling
-            </Button>
+        {state.phase === "evidence" && (
+          <div className="space-y-4">
+            <EvidenceLocker />
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="ghost" onClick={() => setPhase("briefing")}>
+                Back
+              </Button>
+              <Button type="button" onClick={() => nextPhase()}>
+                Continue to law library
+              </Button>
+            </div>
           </div>
-        </div>
-      )}
+        )}
+
+        {state.phase === "library" && (
+          <div className="space-y-4">
+            <LawLibrary caseId={c.id} precedents={c.precedents} kind={c.kind} />
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="ghost" onClick={() => setPhase("evidence")}>
+                Back
+              </Button>
+              <Button type="button" onClick={() => nextPhase()}>
+                Draft ruling
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {state.phase === "ruling" && (
+          <div className="space-y-3 xl:hidden">
+            <p className="text-sm text-muted-foreground">
+              Use the Virtual Legal Pad below to enter your verdict and reasoning.
+            </p>
+          </div>
+        )}
+      </div>
 
       {state.phase === "ruling" && (
-        <div className="space-y-4">
-          <RulingTemplate kind={c.kind} />
-          <div className="flex flex-wrap justify-end gap-2">
-            <Button type="button" variant="ghost" onClick={() => setPhase("library")}>
-              Back
-            </Button>
-            <Button type="button" disabled={submitting} onClick={() => void submitRuling()}>
-              {submitting ? "Submitting…" : "Submit ruling"}
-            </Button>
-          </div>
+        <div className="space-y-4 xl:hidden">
+          <LegalPadPanel
+            kind={c.kind}
+            phase={state.phase}
+            submitting={submitting}
+            onSubmit={submitRuling}
+            onBack={() => setPhase("library")}
+          />
         </div>
       )}
     </div>
+  );
+
+  const rightRail = (
+    <div className="hidden max-h-[calc(100vh-5rem)] min-h-0 overflow-y-auto xl:block">
+      <LegalPadPanel
+        kind={c.kind}
+        phase={state.phase}
+        submitting={submitting}
+        onSubmit={submitRuling}
+        onBack={() => setPhase("library")}
+      />
+    </div>
+  );
+
+  return (
+    <JudicialShell
+      sidebar={<AppSidebarTrial phase={state.phase} onPhaseNavigate={navigateTrial} />}
+      rightRail={rightRail}
+    >
+      {center}
+    </JudicialShell>
   );
 }

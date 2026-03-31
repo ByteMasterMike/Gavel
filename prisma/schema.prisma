@@ -17,15 +17,45 @@ enum RulingStatus {
   SCORED
 }
 
+enum SubscriptionStatus {
+  NONE
+  ACTIVE
+  PAST_DUE
+  CANCELED
+}
+
+enum UserRole {
+  LEARNER
+  INSTRUCTOR
+}
+
+enum DissentStatus {
+  PENDING
+  APPROVED
+  DECLINED
+}
+
+enum ClassroomBadgeKind {
+  DISTINGUISHED_DISSENTER
+}
+
 model User {
   id            String    @id @default(cuid())
   name          String?
   email         String?   @unique
   emailVerified DateTime?
   image         String?
+  role          UserRole  @default(LEARNER)
   accounts      Account[]
   sessions      Session[]
   rulings       UserRuling[]
+  llmUsageLogs        LlmUsageLog[]
+  morningGavelBadges  MorningGavelBadge[]
+  instructedSessions  ClassSession[]       @relation("SessionInstructor")
+  sessionParticipations SessionParticipant[]
+  dissents            Dissent[]
+  classroomBadgeGrants ClassroomBadgeGrant[]
+  supremeNineSeat     SupremeNineSeat?
 
   careerPoints Int       @default(0)
   currentTier  Int       @default(1)
@@ -36,6 +66,12 @@ model User {
   lastMorningDocketLocalDate String?
   tierAccuracyWarning        Boolean @default(false)
   rulingsSinceTierWarning    Int     @default(0)
+
+  /** Paid subscription (e.g. Stripe). Access while ACTIVE or CANCELED until subscriptionValidUntil. */
+  subscriptionStatus       SubscriptionStatus @default(NONE)
+  subscriptionValidUntil   DateTime?
+  stripeCustomerId         String?
+  stripeSubscriptionId     String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -101,9 +137,28 @@ model Case {
   precedents      Precedent[]
   rulings         UserRuling[]
   dailyChallenges DailyChallenge[]
+  classSessions   ClassSession[]
+
+  /** Subscriber-only catalog slice; free users see only cases with false (plus Morning Docket). */
+  requiresSubscription Boolean @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model LlmUsageLog {
+  id               String   @id @default(cuid())
+  userId           String
+  rulingId         String?
+  callType         String
+  inputTokens      Int      @default(0)
+  outputTokens     Int      @default(0)
+  estimatedCostUsd Float    @default(0)
+  createdAt        DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
 }
 
 model CaseDocument {
@@ -168,11 +223,15 @@ model UserRuling {
 
   status RulingStatus @default(PENDING)
 
+  sessionId String?
+
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   case Case @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  session ClassSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
 
   @@index([userId])
   @@index([caseId])
+  @@index([sessionId])
 }
 
 model DailyChallenge {
@@ -181,4 +240,96 @@ model DailyChallenge {
   caseId String
 
   case Case @relation(fields: [caseId], references: [id], onDelete: Cascade)
+}
+
+/** Top-10 on local-day daily board (Morning Gavel). */
+model MorningGavelBadge {
+  id            String   @id @default(cuid())
+  userId        String
+  localDateYmd  String
+  timeZoneUsed  String
+  caseId        String
+  rank          Int
+  totalScore    Int
+  createdAt     DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, localDateYmd, caseId])
+  @@index([userId])
+}
+
+/** Nine ceremonial seats — synced from top career points among Tier 5 judges (on-demand recompute). */
+model SupremeNineSeat {
+  slot                 Int     @id
+  userId               String? @unique
+  careerPointsSnapshot Int     @default(0)
+  updatedAt            DateTime @updatedAt
+  user                 User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+}
+
+model ClassSession {
+  id           String   @id @default(cuid())
+  instructorId String
+  title        String
+  roomCode     String   @unique
+  caseId       String
+  settings     Json     @default("{}")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  instructor User @relation("SessionInstructor", fields: [instructorId], references: [id], onDelete: Cascade)
+  case       Case @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  participants SessionParticipant[]
+  dissents     Dissent[]
+  rulings      UserRuling[]
+  badgeGrants  ClassroomBadgeGrant[]
+
+  @@index([instructorId])
+  @@index([caseId])
+}
+
+model SessionParticipant {
+  id                   String   @id @default(cuid())
+  sessionId            String
+  userId               String
+  anonymousDisplayName String?
+  isAnonymous          Boolean  @default(false)
+  joinedAt             DateTime @default(now())
+
+  session ClassSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  user    User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, userId])
+  @@index([sessionId])
+}
+
+model Dissent {
+  id                  String        @id @default(cuid())
+  sessionId           String
+  userId              String
+  text                String        @db.Text
+  status              DissentStatus @default(PENDING)
+  instructorComment   String?       @db.Text
+
+  session ClassSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  user    User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@index([userId])
+}
+
+model ClassroomBadgeGrant {
+  id        String             @id @default(cuid())
+  userId    String
+  sessionId String
+  kind      ClassroomBadgeKind
+  createdAt DateTime           @default(now())
+
+  user    User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  session ClassSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([sessionId])
 }

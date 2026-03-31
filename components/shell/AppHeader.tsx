@@ -3,7 +3,9 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession, signIn, signOut } from "next-auth/react";
-import { Clock, Type, Scale } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Clock, Moon, Scale, Sun } from "lucide-react";
+import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -32,8 +34,12 @@ function NavLink({
 export function AppHeader() {
   const pathname = usePathname();
   const { data: session, status } = useSession();
+  const { setTheme, resolvedTheme } = useTheme();
+  const [themeReady, setThemeReady] = useState(false);
+  useEffect(() => setThemeReady(true), []);
+
   const onHall = pathname === "/hall";
-  const onClassroom = pathname === "/classroom";
+  const onClassroom = pathname.startsWith("/classroom");
   const onHome = pathname === "/";
 
   return (
@@ -61,8 +67,21 @@ export function AppHeader() {
             <span className="tabular-nums">Session</span>
           </div>
         )}
-        <Button type="button" variant="ghost" size="icon" className="hidden size-9 text-muted-foreground sm:inline-flex" aria-label="Text size">
-          <Type className="size-4" />
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="size-9 text-muted-foreground"
+          aria-label="Toggle light or dark theme"
+          onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
+        >
+          {!themeReady ? (
+            <Sun className="size-4 opacity-40" />
+          ) : resolvedTheme === "dark" ? (
+            <Sun className="size-4" />
+          ) : (
+            <Moon className="size-4" />
+          )}
         </Button>
         {status === "loading" ? (
           <span className="text-xs text-muted-foreground">…</span>

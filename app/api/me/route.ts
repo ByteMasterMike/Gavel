@@ -6,6 +6,7 @@ import {
   rollingVerdictMatchRate,
   tierTitle,
 } from "@/lib/careerTier";
+import { userHasActiveSubscription } from "@/lib/subscription";
 
 export async function GET() {
   const session = await auth();
@@ -26,6 +27,8 @@ export async function GET() {
         timezone: true,
         lastMorningDocketLocalDate: true,
         tierAccuracyWarning: true,
+        subscriptionStatus: true,
+        subscriptionValidUntil: true,
       },
     });
 
@@ -51,6 +54,42 @@ export async function GET() {
       where: { userId: id, status: "SCORED" },
     });
 
+    const [morningGavelCount, morningGavelRows] = await Promise.all([
+      prisma.morningGavelBadge.count({ where: { userId: id } }),
+      prisma.morningGavelBadge.findMany({
+        where: { userId: id },
+        orderBy: { createdAt: "desc" },
+        take: 12,
+        select: {
+          id: true,
+          localDateYmd: true,
+          rank: true,
+          totalScore: true,
+          caseId: true,
+          timeZoneUsed: true,
+          createdAt: true,
+        },
+      }),
+    ]);
+
+    const caseIds = [...new Set(morningGavelRows.map((b) => b.caseId))];
+    const cases = await prisma.case.findMany({
+      where: { id: { in: caseIds } },
+      select: { id: true, title: true },
+    });
+    const titleByCaseId = new Map(cases.map((c) => [c.id, c.title]));
+
+    const morningGavelBadges = morningGavelRows.map((b) => ({
+      id: b.id,
+      localDateYmd: b.localDateYmd,
+      rank: b.rank,
+      totalScore: b.totalScore,
+      caseId: b.caseId,
+      caseTitle: titleByCaseId.get(b.caseId) ?? null,
+      timeZoneUsed: b.timeZoneUsed,
+      createdAt: b.createdAt.toISOString(),
+    }));
+
     return NextResponse.json({
       user: {
         ...user,
@@ -58,6 +97,12 @@ export async function GET() {
         rollingVerdictRate,
         pointsToNextTier: pointsToNextTier(user.careerPoints, user.currentTier),
         scoredRulingsCount: verdictCount,
+        morningGavelCount,
+        morningGavelBadges,
+        hasActiveSubscription: userHasActiveSubscription({
+          subscriptionStatus: user.subscriptionStatus,
+          subscriptionValidUntil: user.subscriptionValidUntil,
+        }),
       },
     });
   } catch (e) {

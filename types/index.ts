@@ -51,6 +51,8 @@ export interface RulingSubmissionBody {
   verdictFlips: number;
   startedAt: string;
   submittedAt: string;
+  /** Attached ruling to a live class session (must be joined participant; case must match session). */
+  sessionId?: string | null;
 }
 
 export interface PrescientJusticeBreakdown {
@@ -69,6 +71,8 @@ export interface ScoreBreakdownPayload {
     reasoningPoints: number;
     sentenceRangeScore: number;
     llmScore: number;
+    /** No LLM call — verdict/remedy + fixed reasoning slice (budget exhausted). */
+    reasoningDegraded?: boolean;
     /** Present on overturned cases when appellate-alignment bonuses apply. */
     prescientJustice?: PrescientJusticeBreakdown;
   };

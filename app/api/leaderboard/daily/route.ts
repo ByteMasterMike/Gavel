@@ -1,27 +1,32 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import {
+  getUtcTodayDailyCaseId,
+  localDayBounds,
+  resolveLeaderboardTimeZone,
+} from "@/lib/dailyPolicy";
 
-function utcDayBounds(): { start: Date; end: Date } {
-  const start = new Date();
-  start.setUTCHours(0, 0, 0, 0);
-  const end = new Date(start);
-  end.setUTCDate(end.getUTCDate() + 1);
-  return { start, end };
-}
-
-export async function GET() {
+export async function GET(req: Request) {
   try {
-    const { start, end } = utcDayBounds();
+    const { searchParams } = new URL(req.url);
+    const session = await auth();
+    const sessionUser = session?.user?.id
+      ? await prisma.user.findUnique({
+          where: { id: session.user.id },
+          select: { timezone: true },
+        })
+      : null;
+    const tzParam = searchParams.get("timeZone");
+    const timeZone = resolveLeaderboardTimeZone(
+      tzParam ?? sessionUser?.timezone ?? undefined,
+    );
 
-    const daily = await prisma.dailyChallenge.findUnique({
-      where: { date: start },
-      include: { case: { select: { id: true, title: true } } },
-    });
-
-    if (!daily?.case) {
+    const caseId = await getUtcTodayDailyCaseId();
+    if (!caseId) {
       return NextResponse.json({
-        date: start.toISOString(),
+        date: new Date().toISOString(),
+        timeZone,
         caseId: null,
         caseTitle: null,
         entries: [] as const,
@@ -29,9 +34,16 @@ export async function GET() {
       });
     }
 
+    const dailyMeta = await prisma.case.findUnique({
+      where: { id: caseId },
+      select: { title: true },
+    });
+
+    const { start, end } = localDayBounds(timeZone, new Date());
+
     const rulings = await prisma.userRuling.findMany({
       where: {
-        caseId: daily.caseId,
+        caseId,
         status: "SCORED",
         submittedAt: { gte: start, lt: end },
         totalScore: { not: null },
@@ -72,7 +84,6 @@ export async function GET() {
       totalScore: v.totalScore,
     }));
 
-    const session = await auth();
     const myId = session?.user?.id;
     let me: { rank: number; totalScore: number; displayName: string } | null = null;
     if (myId) {
@@ -88,8 +99,9 @@ export async function GET() {
 
     return NextResponse.json({
       date: start.toISOString(),
-      caseId: daily.case.id,
-      caseTitle: daily.case.title,
+      timeZone,
+      caseId,
+      caseTitle: dailyMeta?.title ?? null,
       entries,
       me,
     });

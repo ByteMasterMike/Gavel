@@ -1,4 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { prisma } from "@/lib/prisma";
+import { estimateCallCostUsd } from "@/lib/tokenBudget";
 import { sanitizeReasoningInput } from "./sanitizeInput";
 
 export interface ReasoningEvaluation {
@@ -21,6 +23,8 @@ export async function evaluateReasoning(params: {
   citedPrecedentSummaries: string;
   correctReasoningSummary: string;
   actualOpinionExcerpt: string;
+  /** PRD §16 — token ledger (usage only; budgets can be layered on top). */
+  usageLog?: { userId: string; rulingId: string; callType?: string };
 }): Promise<ReasoningEvaluation> {
   const key = process.env.ANTHROPIC_API_KEY;
   if (!key) {
@@ -63,6 +67,25 @@ ${studentBlock}
     });
     const block = msg.content.find((b) => b.type === "text");
     text = block && block.type === "text" ? block.text : "";
+
+    const u = msg.usage;
+    if (params.usageLog && u) {
+      const inputTokens = u.input_tokens ?? 0;
+      const outputTokens = u.output_tokens ?? 0;
+      const estimatedCostUsd = estimateCallCostUsd(inputTokens, outputTokens);
+      void prisma.llmUsageLog
+        .create({
+          data: {
+            userId: params.usageLog.userId,
+            rulingId: params.usageLog.rulingId,
+            callType: params.usageLog.callType ?? "reasoning_score",
+            inputTokens,
+            outputTokens,
+            estimatedCostUsd,
+          },
+        })
+        .catch(() => {});
+    }
   } catch {
     return { score: 0.5, feedback: "Model request failed; default score applied." };
   }

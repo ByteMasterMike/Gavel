@@ -94,7 +94,13 @@ function LegalPadPanel({
   );
 }
 
-export function CasePlayClient({ caseId }: { caseId: string }) {
+export function CasePlayClient({
+  caseId,
+  classSessionId = null,
+}: {
+  caseId: string;
+  classSessionId?: string | null;
+}) {
   const router = useRouter();
   const { data: session, status } = useSession();
   const { state, loadCase, nextPhase, setPhase } = useCaseSession();
@@ -107,7 +113,15 @@ export function CasePlayClient({ caseId }: { caseId: string }) {
       setLoadError(null);
       const res = await fetch(`/api/cases/${caseId}`);
       if (!res.ok) {
-        if (!cancelled) setLoadError("Case not found.");
+        let message = res.status === 403 ? "You do not have access to this case." : "Case not found.";
+        try {
+          const raw = await res.text();
+          const err = JSON.parse(raw) as { error?: string };
+          if (err.error) message = err.error;
+        } catch {
+          /* keep default */
+        }
+        if (!cancelled) setLoadError(message);
         return;
       }
       const data = (await res.json()) as { case: PublicCasePayload };
@@ -116,7 +130,7 @@ export function CasePlayClient({ caseId }: { caseId: string }) {
     return () => {
       cancelled = true;
     };
-  }, [caseId, loadCase]);
+  }, [caseId, classSessionId, loadCase]);
 
   const submitRuling = useCallback(async () => {
     setLoadError(null);
@@ -164,6 +178,7 @@ export function CasePlayClient({ caseId }: { caseId: string }) {
           verdictFlips: state.verdictFlips,
           startedAt: new Date(state.startedAt).toISOString(),
           submittedAt: new Date().toISOString(),
+          ...(classSessionId ? { sessionId: classSessionId } : {}),
         }),
       });
       if (!res.ok) {
@@ -183,7 +198,7 @@ export function CasePlayClient({ caseId }: { caseId: string }) {
     } finally {
       setSubmitting(false);
     }
-  }, [router, state]);
+  }, [router, state, classSessionId]);
 
   if (status === "loading") {
     return (
@@ -332,7 +347,12 @@ export function CasePlayClient({ caseId }: { caseId: string }) {
 
         {state.phase === "library" && (
           <div className="space-y-4">
-            <LawLibrary caseId={c.id} precedents={c.precedents} kind={c.kind} />
+            <LawLibrary
+              caseId={c.id}
+              precedents={c.precedents}
+              kind={c.kind}
+              classSessionId={classSessionId}
+            />
             <div className="flex justify-end gap-2">
               <Button type="button" variant="ghost" onClick={() => setPhase("evidence")}>
                 Back

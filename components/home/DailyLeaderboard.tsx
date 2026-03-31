@@ -15,6 +15,7 @@ type Entry = {
 
 type Payload = {
   date: string;
+  timeZone?: string;
   caseId: string | null;
   caseTitle: string | null;
   entries: Entry[];
@@ -88,7 +89,13 @@ export function DailyLeaderboard() {
         </CardTitle>
         <CardDescription>
           Today&apos;s case: <span className="text-foreground/90">{data.caseTitle}</span>. One entry per
-          judge (your best score today).
+          judge (your best score in your local calendar day
+          {data.timeZone ? (
+            <>
+              , <span className="text-foreground/80">{data.timeZone}</span>
+            </>
+          ) : null}
+          ).
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">

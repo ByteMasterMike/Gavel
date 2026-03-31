@@ -17,10 +17,10 @@ export function ScoreBreakdown({ breakdown, animate = true }: Props) {
 
   useEffect(() => {
     if (!animate) return;
-    const t1 = setTimeout(() => setStep(1), 400);
-    const t2 = setTimeout(() => setStep(2), 900);
-    const t3 = setTimeout(() => setStep(3), 1400);
-    const t4 = setTimeout(() => setStep(99), 2000);
+    const t1 = setTimeout(() => setStep(1), 550);
+    const t2 = setTimeout(() => setStep(2), 1150);
+    const t3 = setTimeout(() => setStep(3), 1750);
+    const t4 = setTimeout(() => setStep(99), 2400);
     return () => {
       clearTimeout(t1);
       clearTimeout(t2);
@@ -40,6 +40,11 @@ export function ScoreBreakdown({ breakdown, animate = true }: Props) {
             <CardTitle className="text-base">Accuracy</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
+            {acc.reasoningDegraded && (
+              <p className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-100">
+                Reasoning was scored on a fixed baseline — monthly LLM evaluation budget was reached. Verdict and remedy matching still count in full.
+              </p>
+            )}
             <div className="flex justify-between gap-2">
               <span className="text-muted-foreground">Verdict match</span>
               <span className="font-medium">{acc.verdictMatch ? "Yes" : "No"}</span>

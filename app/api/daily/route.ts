@@ -25,7 +25,15 @@ export async function GET(req: Request) {
       }
 
       return NextResponse.json({
-        daily: { date: daily.date, case: { id: daily.case.id } },
+        daily: {
+          date: daily.date,
+          case: {
+            id: daily.case.id,
+            title: daily.case.title,
+            tier: daily.case.tier,
+            category: daily.case.category,
+          },
+        },
       });
     }
 

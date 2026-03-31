@@ -4,11 +4,11 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
-import { Award, Brain, Flame } from "lucide-react";
+import { Award, Brain, Flame, Share2 } from "lucide-react";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { RevealScreen, type RevealPayload } from "@/components/results/RevealScreen";
 import { ScoreBreakdown } from "@/components/results/ScoreBreakdown";
 import type { ScoreBreakdownPayload } from "@/types";
-import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { JudicialShell } from "@/components/shell/JudicialShell";
@@ -39,6 +39,12 @@ export default function ResultsPage() {
   const { status } = useSession();
   const [data, setData] = useState<PollResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [shareCopied, setShareCopied] = useState(false);
+  const [analysisUnlocked, setAnalysisUnlocked] = useState(false);
+
+  useEffect(() => {
+    setAnalysisUnlocked(false);
+  }, [rulingId]);
 
   useEffect(() => {
     let stop = false;
@@ -89,6 +95,32 @@ export default function ResultsPage() {
 
   const pending = data.ruling.status !== "SCORED";
   const prescientPts = data.ruling.scoreBreakdown?.accuracy.prescientJustice?.points ?? 0;
+
+  const buildSpoilerFreeShareText = () => {
+    const origin =
+      typeof window !== "undefined" ? window.location.origin : "";
+    const url = `${origin}/results/${rulingId}`;
+    const rank = data.ruling.judgeRank?.trim() || "Judge";
+    const pts = data.ruling.totalScore;
+    const day = new Date().toLocaleDateString(undefined, {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+    const scoreLine =
+      pts != null ? `${pts.toLocaleString()} pts` : "Scored";
+    return `Gavel · ${day}\n${rank} · ${scoreLine}\n${url}`;
+  };
+
+  const copyShareText = async () => {
+    try {
+      await navigator.clipboard.writeText(buildSpoilerFreeShareText());
+      setShareCopied(true);
+      window.setTimeout(() => setShareCopied(false), 2500);
+    } catch {
+      setShareCopied(false);
+    }
+  };
   const headline = data.reveal.isOverturned ? "The overturned reveal" : "Case reveal";
   const accuracyPct =
     data.ruling.scoreBreakdown && data.ruling.scoreBreakdown.accuracy.total > 0
@@ -150,7 +182,18 @@ export default function ResultsPage() {
           }
         />
 
-        {!pending && data.ruling.scoreBreakdown && (
+        {!pending && data.ruling.scoreBreakdown && !analysisUnlocked && (
+          <div className="flex flex-col items-center gap-2 border-y border-border/60 py-8">
+            <Button type="button" size="lg" className="min-w-[240px]" onClick={() => setAnalysisUnlocked(true)}>
+              Continue to juridical analysis
+            </Button>
+            <p className="text-center text-xs text-muted-foreground">
+              Take a beat before scores and feedback — same reveal, paced delivery.
+            </p>
+          </div>
+        )}
+
+        {!pending && data.ruling.scoreBreakdown && analysisUnlocked && (
           <>
             <section className="space-y-4">
               <h2 className="font-heading text-xl text-foreground">Juridical analysis</h2>
@@ -212,9 +255,23 @@ export default function ResultsPage() {
                     +{data.ruling.totalScore?.toLocaleString() ?? "—"}
                   </p>
                 </div>
-                <Link href="/" className={cn(buttonVariants({ variant: "outline" }), "border-primary/50 shrink-0")}>
-                  Archive case file
-                </Link>
+                <div className="flex flex-col gap-2 sm:items-end">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="border-primary/50 gap-2"
+                    onClick={() => void copyShareText()}
+                  >
+                    <Share2 className="size-4" />
+                    {shareCopied ? "Copied" : "Copy share text"}
+                  </Button>
+                  <p className="text-center text-[10px] text-muted-foreground sm:text-right">
+                    Spoiler-free: rank, points, date, link — no verdict or outcome.
+                  </p>
+                  <Link href="/" className={cn(buttonVariants({ variant: "outline" }), "border-primary/50 shrink-0")}>
+                    Archive case file
+                  </Link>
+                </div>
               </CardContent>
             </Card>
 

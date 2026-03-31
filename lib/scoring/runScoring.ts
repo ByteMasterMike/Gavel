@@ -1,5 +1,7 @@
 import type { Case, CaseDocument, Precedent, User, UserRuling } from "@prisma/client";
+import { getUtcTodayDailyCaseId } from "@/lib/dailyPolicy";
 import { evaluateReasoning } from "@/lib/llm/evaluateReasoning";
+import { DEGRADED_LLM_MESSAGE, shouldDegradeLlmScoring } from "@/lib/tokenBudget";
 import { computeAccuracyScore } from "./accuracyScore";
 import { computePrescientJustice } from "./prescientJustice";
 import { computeStyleScore } from "./styleScore";
@@ -34,14 +36,20 @@ export async function scoreRuling(params: {
     .map((p) => `- ${p.name} (${p.citation}): ${p.summary.slice(0, 400)}`)
     .join("\n");
 
-  const llm = await evaluateReasoning({
-    studentFindings: ruling.findingsOfFact,
-    studentApplication: ruling.applicationOfLaw,
-    studentMitigating: ruling.mitigatingFactors,
-    citedPrecedentSummaries,
-    correctReasoningSummary: caseRow.correctReasoningSummary,
-    actualOpinionExcerpt: caseRow.actualOpinionExcerpt,
-  });
+  const todaysDailyCaseId = await getUtcTodayDailyCaseId();
+  const degradeReasoning = await shouldDegradeLlmScoring(user, caseRow.id, todaysDailyCaseId);
+
+  const llm = degradeReasoning
+    ? { score: 0.5, feedback: DEGRADED_LLM_MESSAGE }
+    : await evaluateReasoning({
+        studentFindings: ruling.findingsOfFact,
+        studentApplication: ruling.applicationOfLaw,
+        studentMitigating: ruling.mitigatingFactors,
+        citedPrecedentSummaries,
+        correctReasoningSummary: caseRow.correctReasoningSummary,
+        actualOpinionExcerpt: caseRow.actualOpinionExcerpt,
+        usageLog: { userId: user.id, rulingId: ruling.id },
+      });
 
   const accuracyParts = computeAccuracyScore(
     caseRow,
@@ -105,6 +113,7 @@ export async function scoreRuling(params: {
       reasoningPoints: accuracyParts.reasoningPoints,
       sentenceRangeScore: accuracyParts.sentenceRangeScore,
       llmScore: accuracyParts.llmScore,
+      ...(degradeReasoning ? { reasoningDegraded: true as const } : {}),
       ...(prescient.points > 0
         ? {
             prescientJustice: {

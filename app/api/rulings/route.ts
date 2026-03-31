@@ -2,7 +2,11 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { isExpiredPastDailyCase } from "@/lib/dailyPolicy";
+import { evaluateCaseAccess, getTodaysDailyCaseId } from "@/lib/caseAccess";
+import { checkRulingSubmissionRate } from "@/lib/rulingRateLimit";
 import { scoreRuling } from "@/lib/scoring/runScoring";
+import { tryAwardMorningGavelBadge } from "@/lib/morningGavel";
 import { applyRulingRewards } from "@/lib/userProgress";
 import type { RulingSubmissionBody } from "@/types";
 
@@ -31,6 +35,13 @@ function parseBody(json: unknown): RulingSubmissionBody | null {
   if (!Number.isFinite(hintsUsed) || !Number.isFinite(verdictFlips)) return null;
   if (typeof b.startedAt !== "string") return null;
   if (typeof b.submittedAt !== "string") return null;
+  if (b.sessionId !== undefined && b.sessionId !== null && typeof b.sessionId !== "string") {
+    return null;
+  }
+  const sessionId =
+    b.sessionId === undefined || b.sessionId === null || b.sessionId === ""
+      ? null
+      : b.sessionId;
   return {
     caseId: b.caseId,
     verdict: b.verdict,
@@ -50,6 +61,7 @@ function parseBody(json: unknown): RulingSubmissionBody | null {
     verdictFlips: Math.max(0, Math.floor(verdictFlips)),
     startedAt: b.startedAt,
     submittedAt: b.submittedAt,
+    sessionId,
   };
 }
 
@@ -87,6 +99,12 @@ async function runScoreJob(rulingId: string) {
     caseId: ruling.caseId,
     verdictMatch: result.breakdown.accuracy.verdictMatch,
   });
+
+  await tryAwardMorningGavelBadge({
+    userId: ruling.userId,
+    caseId: ruling.caseId,
+    submittedAt: ruling.submittedAt,
+  });
 }
 
 export async function POST(req: Request) {
@@ -96,7 +114,15 @@ export async function POST(req: Request) {
 
   let dbUser;
   try {
-    dbUser = await prisma.user.findUnique({ where: { id: userId } });
+    dbUser = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        currentTier: true,
+        subscriptionStatus: true,
+        subscriptionValidUntil: true,
+      },
+    });
   } catch (e) {
     console.error("[ruling POST] user lookup", e);
     return NextResponse.json({ error: "Could not verify account." }, { status: 500 });
@@ -110,6 +136,11 @@ export async function POST(req: Request) {
       },
       { status: 401 },
     );
+  }
+
+  const rate = checkRulingSubmissionRate(userId);
+  if (!rate.ok) {
+    return NextResponse.json({ error: rate.message }, { status: 429 });
   }
 
   let body: unknown;
@@ -137,6 +168,32 @@ export async function POST(req: Request) {
 
   if (!caseRow) return NextResponse.json({ error: "Case not found" }, { status: 404 });
 
+  if (await isExpiredPastDailyCase(caseRow.id)) {
+    return NextResponse.json(
+      { error: "This Morning Docket case is no longer available." },
+      { status: 403 },
+    );
+  }
+
+  const todaysDailyCaseId = await getTodaysDailyCaseId();
+  const access = evaluateCaseAccess({
+    sessionUserId: userId,
+    userTier: dbUser.currentTier,
+    subscription: {
+      subscriptionStatus: dbUser.subscriptionStatus,
+      subscriptionValidUntil: dbUser.subscriptionValidUntil,
+    },
+    caseRow: {
+      id: caseRow.id,
+      tier: caseRow.tier,
+      requiresSubscription: caseRow.requiresSubscription,
+    },
+    todaysDailyCaseId,
+  });
+  if (!access.ok) {
+    return NextResponse.json({ error: access.message }, { status: access.status });
+  }
+
   if (parsed.citedPrecedentIds.length > caseRow.maxPrecedents) {
     return NextResponse.json({ error: "Too many precedents cited" }, { status: 400 });
   }
@@ -151,6 +208,7 @@ export async function POST(req: Request) {
       data: {
         userId,
         caseId: parsed.caseId,
+        sessionId: parsed.sessionId ?? undefined,
         verdict: parsed.verdict,
         sentenceText: parsed.sentenceText,
         sentenceNumeric: sn,

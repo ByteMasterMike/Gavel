@@ -24,9 +24,11 @@ type Props = {
   caseId: string;
   precedents: Prec[];
   kind: CaseKind;
+  /** Unlocks hints when the case is played inside a joined class session. */
+  classSessionId?: string | null;
 };
 
-export function LawLibrary({ caseId, precedents, kind }: Props) {
+export function LawLibrary({ caseId, precedents, kind, classSessionId }: Props) {
   const { state, togglePrecedent, bumpHintsUsed } = useCaseSession();
   const [q, setQ] = useState("");
   const [hintVisibleIds, setHintVisibleIds] = useState<string[] | null>(null);
@@ -52,7 +54,10 @@ export function LawLibrary({ caseId, precedents, kind }: Props) {
     const res = await fetch(`/api/cases/${caseId}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ level: nextLevel }),
+      body: JSON.stringify({
+        level: nextLevel,
+        ...(classSessionId ? { sessionId: classSessionId } : {}),
+      }),
     });
     if (!res.ok) return;
     const data = (await res.json()) as { visibleIds: string[] };

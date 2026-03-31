@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { TIER_POINT_FLOORS } from "@/lib/careerTier";
+import { Gavel } from "lucide-react";
 
 type Me = {
   careerPoints: number;
@@ -14,6 +15,14 @@ type Me = {
   rollingVerdictRate: number | null;
   pointsToNextTier: number | null;
   scoredRulingsCount?: number;
+  morningGavelCount?: number;
+  morningGavelBadges?: {
+    id: string;
+    localDateYmd: string;
+    rank: number;
+    totalScore: number;
+    caseTitle: string | null;
+  }[];
 };
 
 export function CareerSection() {
@@ -88,6 +97,30 @@ export function CareerSection() {
             <p className="text-[10px] text-muted-foreground">Last 10 scored</p>
           </div>
         </div>
+        {(me.morningGavelCount ?? 0) > 0 && (
+          <div className="rounded-lg border border-primary/30 bg-primary/5 px-3 py-3">
+            <div className="flex items-center gap-2 text-sm font-semibold text-primary">
+              <Gavel className="size-4 shrink-0" />
+              Morning Gavel · top 10 daily
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Earned <span className="font-medium text-foreground">{me.morningGavelCount}</span> time
+              {me.morningGavelCount === 1 ? "" : "s"} on your local board.
+            </p>
+            {me.morningGavelBadges && me.morningGavelBadges.length > 0 && (
+              <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
+                {me.morningGavelBadges.slice(0, 3).map((b) => (
+                  <li key={b.id} className="flex justify-between gap-2">
+                    <span className="truncate">{b.caseTitle ?? "Docket case"}</span>
+                    <span className="shrink-0 tabular-nums text-foreground">
+                      #{b.rank} · {b.totalScore.toLocaleString()} pts
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
         {me.pointsToNextTier !== null && nextFloor !== null ? (
           <div>
             <p className="text-xs text-muted-foreground">

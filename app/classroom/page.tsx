@@ -1,196 +1,203 @@
 "use client";
 
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useSession, signIn } from "next-auth/react";
+import { useEffect, useState } from "react";
 import { JudicialShell } from "@/components/shell/JudicialShell";
 import { AppSidebarHome } from "@/components/shell/AppSidebar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
-import { Activity, AlertTriangle, BookOpen, Gavel, Users } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { BookOpen, GraduationCap, Hash } from "lucide-react";
 
-const METRICS = [
-  { label: "Argument velocity", value: "14.2 items / min" },
-  { label: "Jury consensus", value: "68%" },
-  { label: "Critical flags", value: "03 pending" },
-];
+type CaseRow = { id: string; title: string; tier: number; category: string };
 
-const STREAM = [
-  {
-    tone: "destructive" as const,
-    title: "Logical fallacy detected",
-    body: "Student cited irrelevance between training data drift and proximate cause.",
-    meta: "Miller, A. · 14:22:01",
-    action: "Interject",
-  },
-  {
-    tone: "default" as const,
-    title: "Strong precedent cited",
-    body: "State v. Loomis (2016) invoked for algorithmic transparency.",
-    meta: "Zhang, L. · 14:20:45",
-    action: "Highlight",
-  },
-  {
-    tone: "muted" as const,
-    title: "Counter-argument formed",
-    body: "Trade secret doctrine raised against discovery motion.",
-    meta: "Thompson, E. · 14:18:12",
-    action: "Acknowledge",
-  },
-];
+export default function ClassroomHubPage() {
+  const router = useRouter();
+  const { data: session, status } = useSession();
+  const [cases, setCases] = useState<CaseRow[]>([]);
+  const [caseId, setCaseId] = useState("");
+  const [title, setTitle] = useState("Class session");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const [codeInput, setCodeInput] = useState("");
 
-export default function ClassroomPage() {
-  const main = (
-    <div className="px-4 py-8 md:px-8 lg:px-10">
-      <div className="mx-auto max-w-6xl space-y-8">
-        <Badge variant="outline" className="border-amber-500/50 text-amber-200">
-          Demo · no live session
-        </Badge>
+  useEffect(() => {
+    if (!session?.user) return;
+    let cancelled = false;
+    void (async () => {
+      const res = await fetch("/api/cases");
+      if (!res.ok || cancelled) return;
+      const j = (await res.json()) as { cases: CaseRow[] };
+      const list = j.cases ?? [];
+      setCases(list);
+      setCaseId((prev) => prev || list[0]?.id || "");
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [session?.user]);
+
+  const createSession = async () => {
+    setErr(null);
+    setBusy(true);
+    try {
+      const res = await fetch("/api/classroom/sessions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ caseId, title }),
+      });
+      const j = (await res.json()) as { id?: string; error?: string };
+      if (!res.ok) {
+        setErr(j.error ?? "Could not create session");
+        return;
+      }
+      if (j.id) router.push(`/classroom/instructor/${j.id}`);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const goJoin = () => {
+    const c = codeInput.trim().toUpperCase();
+    if (c.length < 4) {
+      setErr("Enter a room code");
+      return;
+    }
+    router.push(`/classroom/session/${c}`);
+  };
+
+  if (status === "loading") {
+    return (
+      <JudicialShell sidebar={<AppSidebarHome active="classroom" />}>
+        <p className="p-8 text-center text-muted-foreground">Loading…</p>
+      </JudicialShell>
+    );
+  }
+
+  if (!session?.user) {
+    return (
+      <JudicialShell sidebar={<AppSidebarHome active="classroom" />}>
+        <div className="mx-auto flex max-w-md flex-col gap-4 p-8">
+          <Card>
+            <CardHeader>
+              <CardTitle className="font-heading">Sign in for classroom</CardTitle>
+              <CardDescription>Instructors and students need an account to host or join a session.</CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-2">
+              {process.env.NODE_ENV === "development" && (
+                <Button type="button" onClick={() => signIn("dev", { callbackUrl: "/classroom" })}>
+                  Dev sign-in
+                </Button>
+              )}
+              <Button type="button" variant="secondary" onClick={() => signIn("google", { callbackUrl: "/classroom" })}>
+                Continue with Google
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </JudicialShell>
+    );
+  }
+
+  return (
+    <JudicialShell sidebar={<AppSidebarHome active="classroom" />}>
+      <div className="mx-auto max-w-3xl space-y-8 px-4 py-8 md:px-8">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Live session</p>
-          <h1 className="mt-2 font-heading text-3xl font-semibold md:text-4xl">The People vs. Algorithmic Bias</h1>
-          <p className="mt-2 flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-            <span className="inline-flex items-center gap-1">
-              <Users className="size-4 text-primary" />
-              +42 observers
-            </span>
-            <span className="rounded-full border border-red-500/40 px-2 py-0.5 text-xs text-red-200">
-              Live proceedings
-            </span>
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Classroom mode</p>
+          <h1 className="mt-2 font-heading text-3xl font-semibold md:text-4xl">Host or join a session</h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Instructors pick a case and share a room code. Students join, then open the case with the session link so
+            rulings attach to your room. The instructor dashboard updates every few seconds (polling).
           </p>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-3">
-          {METRICS.map((m) => (
-            <Card key={m.label} className="border-primary/20 bg-card/80">
-              <CardHeader className="pb-2">
-                <CardDescription className="text-xs uppercase tracking-wide text-primary">{m.label}</CardDescription>
-                <CardTitle className="font-heading text-xl">{m.value}</CardTitle>
-              </CardHeader>
-              {m.label.includes("Consensus") && (
-                <CardContent>
-                  <Progress value={68} className="h-1.5" />
-                </CardContent>
-              )}
-            </Card>
-          ))}
-        </div>
+        {err && (
+          <p className="rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            {err}
+          </p>
+        )}
 
-        <div className="grid gap-6 lg:grid-cols-3">
-          <Card className="border-border bg-card/70 lg:col-span-2">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 font-heading text-lg">
-                <Activity className="size-5 text-primary" />
-                Precedent logic heatmap
-              </CardTitle>
-              <CardDescription>Tracing citation density across student submissions (mock).</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex h-48 items-center justify-center rounded-lg border border-dashed border-primary/30 bg-muted/10 text-sm text-muted-foreground">
-                Visualization placeholder
-              </div>
-              <div className="mt-3 flex justify-between text-[10px] uppercase text-muted-foreground">
-                <span>Low citation density</span>
-                <span>High citation density</span>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-primary/30 bg-gradient-to-b from-card to-accent/15">
-            <CardHeader>
-              <CardTitle className="font-heading text-lg">Verdict projections</CardTitle>
-              <CardDescription>Mock poll</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex aspect-square max-h-40 items-center justify-center rounded-lg border-2 border-primary/50 bg-background/50">
-                <div className="text-center">
-                  <p className="text-3xl font-bold text-primary">42</p>
-                  <p className="text-xs uppercase text-muted-foreground">Total votes</p>
-                </div>
-              </div>
-              <ul className="space-y-2 text-sm">
-                <li className="flex justify-between">
-                  <span className="text-muted-foreground">Guilty / liability</span>
-                  <span className="font-medium text-primary">74%</span>
-                </li>
-                <li className="flex justify-between">
-                  <span className="text-muted-foreground">Not guilty</span>
-                  <span>18%</span>
-                </li>
-                <li className="flex justify-between">
-                  <span className="text-muted-foreground">Undecided</span>
-                  <span>8%</span>
-                </li>
-              </ul>
-            </CardContent>
-          </Card>
-        </div>
-
-        <Card className="border-primary/20 bg-card/80">
-          <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2">
-            <CardTitle className="font-heading text-lg">Live evidence stream</CardTitle>
-            <Badge variant="secondary">12 new flags</Badge>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {STREAM.map((item) => (
-              <div
-                key={item.title}
-                className="rounded-lg border border-border bg-muted/10 p-4"
-              >
-                <div className="flex items-start gap-3">
-                  {item.tone === "destructive" && <AlertTriangle className="size-5 shrink-0 text-red-400" />}
-                  {item.tone === "default" && <BookOpen className="size-5 shrink-0 text-primary" />}
-                  {item.tone === "muted" && <Gavel className="size-5 shrink-0 text-muted-foreground" />}
-                  <div className="min-w-0 flex-1">
-                    <p className="font-medium text-foreground">{item.title}</p>
-                    <p className="mt-1 text-sm text-muted-foreground">{item.body}</p>
-                    <p className="mt-2 text-xs text-muted-foreground">{item.meta}</p>
-                  </div>
-                  <Button type="button" size="sm" variant="outline" className="shrink-0 border-primary/40">
-                    {item.action}
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-
-        <Card className="border-teal-500/20 bg-[color-mix(in_oklab,var(--judicial-panel)_40%,var(--card))]">
+        <Card className="border-primary/25 bg-card/90">
           <CardHeader>
-            <CardTitle className="font-heading text-lg">Brief of the court</CardTitle>
+            <CardTitle className="flex items-center gap-2 font-heading text-lg">
+              <GraduationCap className="size-5 text-primary" />
+              Instructor · new session
+            </CardTitle>
+            <CardDescription>Creates a room code and live dashboard for this case.</CardDescription>
           </CardHeader>
-          <CardContent className="text-sm leading-relaxed text-muted-foreground">
-            <p>
-              Mock copy: procedural due process requires that parties understand how algorithmic risk tools affect
-              outcomes. This session explores weighting mechanisms under the Fourteenth Amendment framework.
-            </p>
-            <p className="mt-3 text-xs text-primary">Ref: ALPHA-9-2024 · Expand dossier (coming soon)</p>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="case-pick">Case</Label>
+              <select
+                id="case-pick"
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                value={caseId}
+                onChange={(e) => setCaseId(e.target.value)}
+              >
+                {cases.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.title} · {c.category} (T{c.tier})
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="sess-title">Session title</Label>
+              <Input id="sess-title" value={title} onChange={(e) => setTitle(e.target.value)} />
+            </div>
+            <Button type="button" disabled={busy || !caseId} onClick={() => void createSession()}>
+              {busy ? "Creating…" : "Create session & open dashboard"}
+            </Button>
           </CardContent>
         </Card>
 
-        <div className="grid gap-4 md:grid-cols-2">
-          <div>
-            <p className="text-xs uppercase text-muted-foreground">Analytical rigor</p>
-            <Progress value={82} className="mt-2 h-2" />
-            <p className="mt-1 text-xs text-primary">Excellent</p>
-          </div>
-          <div>
-            <p className="text-xs uppercase text-muted-foreground">Oral argument participation</p>
-            <Progress value={34} className="mt-2 h-2" />
-            <p className="mt-1 text-xs text-muted-foreground">Low</p>
-          </div>
-        </div>
+        <Card className="border-border bg-card/80">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 font-heading text-lg">
+              <Hash className="size-5 text-primary" />
+              Student · join with code
+            </CardTitle>
+            <CardDescription>Enter the six-character code from your instructor.</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3 sm:flex-row sm:items-end">
+            <div className="flex-1 space-y-2">
+              <Label htmlFor="room-code">Room code</Label>
+              <Input
+                id="room-code"
+                className="font-mono uppercase tracking-widest"
+                placeholder="e.g. ABC12D"
+                value={codeInput}
+                onChange={(e) => setCodeInput(e.target.value.toUpperCase())}
+                maxLength={8}
+              />
+            </div>
+            <Button type="button" onClick={goJoin}>
+              Continue
+            </Button>
+          </CardContent>
+        </Card>
 
-        <div className="flex flex-wrap gap-3">
-          <Button type="button" variant="secondary">
-            Call recess
-          </Button>
-          <Button type="button" className="bg-red-950/80 text-red-100 hover:bg-red-900">
-            Adjourn session
-          </Button>
-        </div>
+        <Card className="border-muted bg-muted/10">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <BookOpen className="size-4" />
+              .edu verification
+            </CardTitle>
+            <CardDescription>
+              Instructor roles can later require institutional email. For now any signed-in user may host a session.
+            </CardDescription>
+          </CardHeader>
+        </Card>
+
+        <p className="text-center text-sm text-muted-foreground">
+          <Link href="/hall" className="text-primary underline-offset-4 hover:underline">
+            View hall & leaderboards
+          </Link>
+        </p>
       </div>
-    </div>
+    </JudicialShell>
   );
-
-  return <JudicialShell sidebar={<AppSidebarHome active="classroom" />}>{main}</JudicialShell>;
 }

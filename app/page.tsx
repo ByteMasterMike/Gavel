@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { useSession, signIn, signOut } from "next-auth/react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { CareerSection } from "@/components/home/CareerSection";
+import { fetchOkJson } from "@/lib/fetchWithRetry";
 
 type CaseRow = {
   id: string;
@@ -19,24 +20,41 @@ type CaseRow = {
   parTimeMinutes: number;
 };
 
+type DailyPayload = { daily?: { case: { id: string } } | null };
+
+type CasesPayload = { cases: CaseRow[] };
+
 export default function Home() {
   const { data: session, status } = useSession();
   const [cases, setCases] = useState<CaseRow[]>([]);
   const [dailyId, setDailyId] = useState<string | null>(null);
+  const [casesStatus, setCasesStatus] = useState<"loading" | "ready" | "error">("loading");
+
+  const loadDocket = useCallback(async () => {
+    setCasesStatus("loading");
+    setCases([]);
+
+    const [casesRes, dailyRes] = await Promise.all([
+      fetchOkJson<CasesPayload>("/api/cases"),
+      fetchOkJson<DailyPayload>("/api/daily"),
+    ]);
+
+    if (dailyRes.ok) {
+      setDailyId(dailyRes.data.daily?.case.id ?? null);
+    }
+
+    if (!casesRes.ok) {
+      setCasesStatus("error");
+      return;
+    }
+
+    setCases(casesRes.data.cases);
+    setCasesStatus("ready");
+  }, []);
 
   useEffect(() => {
-    void (async () => {
-      const [cRes, dRes] = await Promise.all([fetch("/api/cases"), fetch("/api/daily")]);
-      if (cRes.ok) {
-        const j = (await cRes.json()) as { cases: CaseRow[] };
-        setCases(j.cases);
-      }
-      if (dRes.ok) {
-        const j = (await dRes.json()) as { daily?: { case: { id: string } } | null };
-        setDailyId(j.daily?.case.id ?? null);
-      }
-    })();
-  }, []);
+    void loadDocket();
+  }, [loadDocket]);
 
   return (
     <div className="mx-auto flex min-h-full max-w-4xl flex-col gap-10 px-4 py-10">
@@ -91,42 +109,61 @@ export default function Home() {
 
       <div>
         <h2 className="mb-4 font-heading text-xl font-semibold">Case library</h2>
-        <ul className="flex flex-col gap-3">
-          {cases.map((c) => (
-            <li key={c.id}>
-              <Card>
-                <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 space-y-0 pb-2">
-                  <CardTitle className="text-base font-semibold">{c.title}</CardTitle>
-                  <div className="flex gap-2">
-                    <Badge variant="outline">Tier {c.tier}</Badge>
-                    <Badge variant="secondary">{c.kind === "CRIMINAL" ? "Criminal" : "Civil"}</Badge>
-                  </div>
-                </CardHeader>
-                <CardContent className="flex flex-wrap items-center justify-between gap-4">
-                  <p className="text-sm text-muted-foreground">{c.category} · ~{c.parTimeMinutes} min par</p>
-                  {session?.user ? (
-                    <Link
-                      href={`/case/${c.id}`}
-                      className={cn(buttonVariants({ size: "sm" }))}
-                    >
-                      Open case
-                    </Link>
-                  ) : (
-                    <Button type="button" size="sm" disabled>
-                      Sign in to play
-                    </Button>
-                  )}
-                </CardContent>
-              </Card>
-            </li>
-          ))}
-        </ul>
-        {!cases.length && (
-          <p className="text-sm text-muted-foreground">
-            No cases in database. Run{" "}
-            <code className="rounded bg-muted px-1 py-0.5 text-xs">npx prisma migrate deploy</code> and{" "}
-            <code className="rounded bg-muted px-1 py-0.5 text-xs">npm run db:seed</code>.
-          </p>
+        {casesStatus === "loading" && (
+          <p className="text-sm text-muted-foreground">Loading docket…</p>
+        )}
+        {casesStatus === "error" && (
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Couldn&apos;t load cases. Check your connection and try again.
+            </p>
+            <Button type="button" size="sm" variant="secondary" onClick={() => void loadDocket()}>
+              Retry
+            </Button>
+          </div>
+        )}
+        {casesStatus === "ready" && (
+          <>
+            <ul className="flex flex-col gap-3">
+              {cases.map((c) => (
+                <li key={c.id}>
+                  <Card>
+                    <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 space-y-0 pb-2">
+                      <CardTitle className="text-base font-semibold">{c.title}</CardTitle>
+                      <div className="flex gap-2">
+                        <Badge variant="outline">Tier {c.tier}</Badge>
+                        <Badge variant="secondary">{c.kind === "CRIMINAL" ? "Criminal" : "Civil"}</Badge>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="flex flex-wrap items-center justify-between gap-4">
+                      <p className="text-sm text-muted-foreground">
+                        {c.category} · ~{c.parTimeMinutes} min par
+                      </p>
+                      {session?.user ? (
+                        <Link
+                          href={`/case/${c.id}`}
+                          className={cn(buttonVariants({ size: "sm" }))}
+                        >
+                          Open case
+                        </Link>
+                      ) : (
+                        <Button type="button" size="sm" disabled>
+                          Sign in to play
+                        </Button>
+                      )}
+                    </CardContent>
+                  </Card>
+                </li>
+              ))}
+            </ul>
+            {!cases.length && (
+              <p className="text-sm text-muted-foreground">
+                No cases in database. Run{" "}
+                <code className="rounded bg-muted px-1 py-0.5 text-xs">npx prisma migrate deploy</code> and{" "}
+                <code className="rounded bg-muted px-1 py-0.5 text-xs">npm run db:seed</code>.
+              </p>
+            )}
+          </>
         )}
       </div>
 

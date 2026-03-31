@@ -3,13 +3,23 @@ import Google from "next-auth/providers/google";
 import Credentials from "next-auth/providers/credentials";
 import { prisma } from "@/lib/prisma";
 
+/** Auth.js requires a non-empty secret or it returns "Server error / server configuration". */
+const authSecret =
+  process.env.AUTH_SECRET?.trim() || process.env.NEXTAUTH_SECRET?.trim();
+
+if (process.env.NODE_ENV === "development" && !authSecret) {
+  console.warn(
+    "[auth] Set AUTH_SECRET (or NEXTAUTH_SECRET) in .env — sign-in will fail until it is set.",
+  );
+}
+
 const googleEnabled =
   Boolean(process.env.GOOGLE_CLIENT_ID?.length) &&
   Boolean(process.env.GOOGLE_CLIENT_SECRET?.length);
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   trustHost: true,
-  secret: process.env.AUTH_SECRET,
+  secret: authSecret,
   providers: [
     ...(googleEnabled
       ? [

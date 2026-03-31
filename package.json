@@ -9,6 +9,7 @@
     "lint": "eslint",
     "postinstall": "node scripts/prisma-generate.cjs",
     "db:push": "dotenv -e .env --override -- prisma db push",
+    "db:deploy": "dotenv -e .env --override -- prisma migrate deploy",
     "db:seed": "dotenv -e .env --override -- prisma db seed",
     "db:reset-dev": "dotenv -e .env --override -- tsx prisma/reset-dev.ts",
     "db:migrate": "dotenv -e .env --override -- prisma migrate dev"

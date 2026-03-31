@@ -22,9 +22,10 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans, ui-sans-serif, system-ui, sans-serif);
+  --font-sans: var(--font-inter, ui-sans-serif, system-ui, sans-serif);
   --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-display, var(--font-sans));
+  --font-heading: var(--font-newsreader, Georgia, "Times New Roman", serif);
+  --font-body: var(--font-noto-serif, Georgia, serif);
   --color-gavel-gold: var(--gavel-gold);
   --color-gavel-gold-muted: var(--gavel-gold-muted);
   --color-parchment: var(--parchment);
@@ -158,6 +159,12 @@
 }
 
 @layer utilities {
+  .font-body {
+    font-family: var(--font-body);
+  }
+  .font-label {
+    font-family: var(--font-sans);
+  }
   .bg-parchment {
     background-color: var(--parchment);
   }
@@ -172,5 +179,19 @@
   }
   .border-gavel-gold {
     border-color: var(--gavel-gold);
+  }
+  /* Stitch “Sovereign Scholar” dashboard */
+  .mahogany-texture {
+    background: linear-gradient(to right, #2c1810, #402015, #2c1810);
+  }
+  .gold-leaf-border {
+    border: 1px solid rgba(233, 193, 118, 0.3);
+    box-shadow:
+      inset 0 0 15px rgba(197, 160, 89, 0.1),
+      0 4px 20px rgba(0, 0, 0, 0.5);
+  }
+  .parchment-texture {
+    background-color: #aba598;
+    background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCwCSHYsZ22ql9z_EhuJML0Sp5_-hQq4uZ5hR6Lk-Od7Tm7NLUzSkGJbVpAvTOFWtggcPGqXdZ7mhZWq3jQTeCU56BkG3-MrPDLi_qTb_O5flD-zn39f5kbGZzPy363pZ_BlRO-cIs5dla1EtVEBQ8TCWG7J0Ut_QYmaLzBblkgHOk7_m-HOfG7YFmfp6PBOQJrqajEYrCuuq37AVz4mbKJ3Yhb2AJ8cKHgu78w8U1zoNz3qx2Kg_i8f6agSS_mKgt9zjI0-c_6il2n");
   }
 }

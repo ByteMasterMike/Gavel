@@ -49,6 +49,7 @@ export async function GET() {
         kind: true,
         category: true,
         parTimeMinutes: true,
+        briefSummary: true,
       },
     });
     return NextResponse.json({ cases }, { headers: cacheHeaders });

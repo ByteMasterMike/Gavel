@@ -6,7 +6,6 @@ import {
   Scale,
   LayoutDashboard,
   BookOpen,
-  Gavel,
   Archive,
   Settings,
   FolderOpen,
@@ -14,6 +13,8 @@ import {
   HelpCircle,
   Plus,
   Presentation,
+  CalendarDays,
+  History,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
@@ -26,6 +27,36 @@ type MeUser = {
 };
 
 type HomeNavId = "docket" | "library" | "classroom" | "chambers" | "archives" | "settings";
+
+function SovereignNavLink({
+  href,
+  active,
+  icon: Icon,
+  className,
+  children,
+}: {
+  href: string;
+  active: boolean;
+  icon: React.ComponentType<{ className?: string }>;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <Link
+      href={href}
+      className={cn(
+        "flex items-center gap-3 px-6 py-4 font-label text-xs font-medium uppercase tracking-widest transition-all duration-200",
+        active
+          ? "border-l-4 border-[#e9c176] bg-gradient-to-r from-[#c5a059]/20 to-transparent text-[#e9c176]"
+          : "border-l-4 border-transparent text-[#d1c5b4]/60 hover:bg-[#201f1f] hover:text-[#d1c5b4]",
+        className,
+      )}
+    >
+      <Icon className="size-[22px] shrink-0" />
+      {children}
+    </Link>
+  );
+}
 
 function SidebarNavItem({
   href,
@@ -83,53 +114,50 @@ export function AppSidebarHome({ active }: { active: HomeNavId }) {
     };
   }, []);
 
-  const display = me?.name?.trim() || me?.email?.split("@")[0] || "Scholar";
-  const role = me?.tierTitle ?? "Judge";
+  const display = me?.name?.trim() || me?.email?.split("@")[0] || "Sovereign Scholar";
+  const role = me?.tierTitle ?? "Senior Associate";
 
   return (
-    <div className="flex h-full flex-col border-r border-sidebar-border bg-sidebar py-6">
-      <div className="px-6 pb-6">
-        <div className="flex items-start gap-3">
-          <div className="flex size-10 shrink-0 items-center justify-center rounded border border-primary/30 bg-sidebar-accent">
-            <Scale className="size-5 text-primary" />
+    <div className="flex h-full flex-col border-r border-[#e9c176]/10 bg-[#1c1b1b] pb-8 pt-24 shadow-[10px_0_30px_rgba(0,0,0,0.5)]">
+      <div className="mb-8 px-6">
+        <div className="mb-2 flex items-center gap-3">
+          <div className="flex size-8 shrink-0 items-center justify-center rounded bg-[#c5a059]">
+            <Scale className="size-4 text-[#4e3700]" />
           </div>
-          <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-foreground">{display}</p>
-            <p className="text-xs uppercase tracking-wide text-muted-foreground">{role}</p>
-          </div>
+          <span className="truncate font-heading text-xl text-[#e9c176]">{display}</span>
         </div>
-        <Link
-          href="/"
-          className={cn(buttonVariants(), "mt-5 w-full gap-2 border border-primary/40 bg-primary text-primary-foreground hover:bg-primary/90")}
-        >
-          <Plus className="size-4" />
-          New case file
-        </Link>
+        <p className="font-label text-xs font-medium uppercase tracking-widest text-[#d1c5b4]/60">{role}</p>
       </div>
-      <nav className="flex flex-1 flex-col gap-1 px-3" aria-label="Docket navigation">
-        <SidebarNavItem href="/" icon={LayoutDashboard} active={active === "docket"}>
+      <nav className="flex flex-1 flex-col font-label" aria-label="Docket navigation">
+        <SovereignNavLink href="/" active={active === "docket"} icon={CalendarDays}>
           Docket
-        </SidebarNavItem>
-        <SidebarNavItem href="/#case-library" icon={BookOpen} active={active === "library"}>
+        </SovereignNavLink>
+        <SovereignNavLink href="/#case-library" active={active === "library"} icon={BookOpen}>
           Library
-        </SidebarNavItem>
-        <SidebarNavItem href="/classroom" icon={Presentation} active={active === "classroom"}>
+        </SovereignNavLink>
+        <SovereignNavLink href="/classroom" active={active === "classroom"} icon={Presentation}>
           Classroom
-        </SidebarNavItem>
-        <SidebarNavItem href="/hall" icon={Gavel} active={active === "chambers"}>
+        </SovereignNavLink>
+        <SovereignNavLink href="/hall" active={active === "chambers"} icon={Scale}>
           Chambers
-        </SidebarNavItem>
-        <SidebarNavItem href="/#case-library" icon={Archive} active={active === "archives"}>
+        </SovereignNavLink>
+        <SovereignNavLink href="/#case-library" active={active === "archives"} icon={History}>
           Archives
-        </SidebarNavItem>
-      </nav>
-      <div className="mt-auto space-y-1 border-t border-sidebar-border px-3 pt-4">
-        <SidebarNavItem href="#" icon={Settings} active={active === "settings"}>
+        </SovereignNavLink>
+        <SovereignNavLink href="#" active={active === "settings"} icon={Settings} className="mt-auto">
           Settings
-        </SidebarNavItem>
-        <SidebarNavItem href="#" icon={HelpCircle} active={false}>
-          Support
-        </SidebarNavItem>
+        </SovereignNavLink>
+      </nav>
+      <div className="mt-8 px-6">
+        <Link
+          href="/#case-library"
+          className={cn(
+            "flex w-full items-center justify-center rounded py-4 font-label text-xs font-bold uppercase tracking-widest shadow-lg transition-all active:scale-[0.98]",
+            "bg-gradient-to-r from-[#e9c176] to-[#c5a059] text-[#412d00]",
+          )}
+        >
+          New Case File
+        </Link>
       </div>
     </div>
   );

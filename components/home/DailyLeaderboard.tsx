@@ -45,7 +45,7 @@ export function DailyLeaderboard() {
 
   if (status === "loading") {
     return (
-      <Card className="border-primary/25 bg-card/60">
+      <Card className="border border-[#e9c176]/20 bg-[#201f1f]/80 font-label shadow-[inset_0_1px_0_0_oklch(1_0_0_/_5%)] backdrop-blur-sm">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 font-heading text-lg text-primary">
             <Trophy className="size-5 text-primary" />
@@ -62,7 +62,7 @@ export function DailyLeaderboard() {
 
   if (status === "error" || !data) {
     return (
-      <Card className="border-primary/25 bg-card/60">
+      <Card className="border border-[#e9c176]/20 bg-[#201f1f]/80 font-label shadow-[inset_0_1px_0_0_oklch(1_0_0_/_5%)] backdrop-blur-sm">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 font-heading text-lg text-primary">
             <Trophy className="size-5 text-primary" />
@@ -81,7 +81,7 @@ export function DailyLeaderboard() {
   }
 
   return (
-    <Card className="border-primary/25 bg-card/60">
+    <Card className="border border-[#e9c176]/20 bg-[#201f1f]/80 font-label shadow-[inset_0_1px_0_0_oklch(1_0_0_/_5%)] backdrop-blur-sm">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 font-heading text-lg text-primary">
           <Trophy className="size-5 text-primary" />

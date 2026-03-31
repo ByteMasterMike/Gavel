@@ -16,7 +16,15 @@ export async function GET(req: Request) {
         where: { date: today },
         select: {
           date: true,
-          case: { select: { id: true, title: true, tier: true, category: true } },
+          case: {
+            select: {
+              id: true,
+              title: true,
+              tier: true,
+              category: true,
+              briefSummary: true,
+            },
+          },
         },
       });
 
@@ -32,6 +40,7 @@ export async function GET(req: Request) {
             title: daily.case.title,
             tier: daily.case.tier,
             category: daily.case.category,
+            briefSummary: daily.case.briefSummary,
           },
         },
       });

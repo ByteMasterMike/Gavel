@@ -48,16 +48,24 @@ function LegalPadPanel({
   submitting,
   onSubmit,
   onBack,
+  layout = "rail",
 }: {
   kind: PublicCasePayload["kind"];
   phase: GamePhase;
   submitting: boolean;
   onSubmit: () => void;
   onBack: () => void;
+  /** `center` = main column (ruling); `rail` = narrow right sidebar. */
+  layout?: "rail" | "center";
 }) {
   if (phase !== "ruling") {
     return (
-      <div className="flex h-full flex-col border-border bg-card/95 p-5 shadow-inner xl:border-l">
+      <div
+        className={cn(
+          "flex h-full flex-col border-border bg-card/95 p-5 shadow-inner",
+          layout === "rail" && "xl:border-l",
+        )}
+      >
         <div className="mb-4">
           <h2 className="font-heading text-lg text-foreground">Virtual Legal Pad</h2>
           <p className="text-xs uppercase tracking-wide text-muted-foreground">Drafting preliminary verdict</p>
@@ -111,7 +119,11 @@ export function CasePlayClient({
     let cancelled = false;
     (async () => {
       setLoadError(null);
-      const res = await fetch(`/api/cases/${caseId}`);
+      const qs =
+        classSessionId != null && classSessionId !== ""
+          ? `?sessionId=${encodeURIComponent(classSessionId)}`
+          : "";
+      const res = await fetch(`/api/cases/${caseId}${qs}`);
       if (!res.ok) {
         let message = res.status === 403 ? "You do not have access to this case." : "Case not found.";
         try {
@@ -270,7 +282,7 @@ export function CasePlayClient({
   const center = (
     <div
       className={cn(
-        "min-h-0 flex-1 space-y-6 overflow-y-auto px-4 py-6 md:px-8",
+        "min-h-0 flex-1 space-y-6 overflow-y-auto px-4 py-6 md:px-8 lg:px-10",
         state.phase !== "ruling" && "xl:pr-2",
       )}
     >
@@ -312,6 +324,7 @@ export function CasePlayClient({
         </nav>
       </div>
 
+      {state.phase !== "ruling" && (
       <div
         className={cn(
           "rounded-xl border border-primary/25 bg-gradient-to-b from-card to-[color-mix(in_oklab,var(--judicial-panel)_25%,var(--card))] p-4 shadow-sm md:p-6",
@@ -363,41 +376,41 @@ export function CasePlayClient({
             </div>
           </div>
         )}
-
-        {state.phase === "ruling" && (
-          <div className="space-y-3 xl:hidden">
-            <p className="text-sm text-muted-foreground">
-              Use the Virtual Legal Pad below to enter your verdict and reasoning.
-            </p>
-          </div>
-        )}
       </div>
+      )}
 
       {state.phase === "ruling" && (
-        <div className="space-y-4 xl:hidden">
-          <LegalPadPanel
-            kind={c.kind}
-            phase={state.phase}
-            submitting={submitting}
-            onSubmit={submitRuling}
-            onBack={() => setPhase("library")}
-          />
+        <div className="flex w-full flex-col items-center pb-8">
+          <p className="mb-4 max-w-xl text-center text-sm text-muted-foreground">
+            Record your verdict, disposition, and reasoning here. Nothing is submitted until you finalize.
+          </p>
+          <div className="w-full max-w-2xl lg:max-w-3xl">
+            <LegalPadPanel
+              layout="center"
+              kind={c.kind}
+              phase={state.phase}
+              submitting={submitting}
+              onSubmit={submitRuling}
+              onBack={() => setPhase("library")}
+            />
+          </div>
         </div>
       )}
     </div>
   );
 
-  const rightRail = (
-    <div className="hidden max-h-[calc(100vh-5rem)] min-h-0 overflow-y-auto xl:block">
-      <LegalPadPanel
-        kind={c.kind}
-        phase={state.phase}
-        submitting={submitting}
-        onSubmit={submitRuling}
-        onBack={() => setPhase("library")}
-      />
-    </div>
-  );
+  const rightRail =
+    state.phase === "ruling" ? undefined : (
+      <div className="hidden max-h-[calc(100vh-5rem)] min-h-0 w-full overflow-y-auto xl:block">
+        <LegalPadPanel
+          kind={c.kind}
+          phase={state.phase}
+          submitting={submitting}
+          onSubmit={submitRuling}
+          onBack={() => setPhase("library")}
+        />
+      </div>
+    );
 
   return (
     <JudicialShell

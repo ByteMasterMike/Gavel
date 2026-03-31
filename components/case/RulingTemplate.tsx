@@ -27,7 +27,7 @@ export function RulingTemplate({ kind, className }: Props) {
         ];
 
   return (
-    <form id="ruling-form" className={cn("mx-auto max-w-2xl space-y-6", className)}>
+    <form data-ruling-form="" className={cn("mx-auto max-w-2xl space-y-6", className)}>
       <div className="rounded-xl border border-border bg-card p-4">
         <p className="mb-3 text-sm font-medium text-muted-foreground">
           {kind === "CRIMINAL" ? "Verdict" : "Liability finding"}

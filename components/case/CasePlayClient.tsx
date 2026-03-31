@@ -24,6 +24,24 @@ const PHASE_LABEL: Record<GamePhase, string> = {
   ruling: "Your ruling",
 };
 
+/** When mobile + desktop legal pads both mount, only one is visible; submit must use that form. */
+function getVisibleRulingForm(doc: Document): HTMLFormElement | null {
+  const forms = doc.querySelectorAll<HTMLFormElement>("form[data-ruling-form]");
+  for (const form of forms) {
+    if (typeof form.checkVisibility === "function") {
+      try {
+        if (form.checkVisibility({ checkOpacity: true, checkVisibilityCSS: true })) return form;
+      } catch {
+        /* ignore */
+      }
+    }
+    if (form.offsetParent !== null) return form;
+    const rects = form.getClientRects();
+    if (rects.length > 0 && rects[0]!.width > 0 && rects[0]!.height > 0) return form;
+  }
+  return forms[0] ?? null;
+}
+
 function LegalPadPanel({
   kind,
   phase,
@@ -101,8 +119,20 @@ export function CasePlayClient({ caseId }: { caseId: string }) {
   }, [caseId, loadCase]);
 
   const submitRuling = useCallback(async () => {
-    const form = document.getElementById("ruling-form") as HTMLFormElement | null;
-    if (!form || !state.caseData || state.startedAt == null) return;
+    setLoadError(null);
+    if (!state.caseData) {
+      setLoadError("Case data is missing. Refresh the page.");
+      return;
+    }
+    if (state.startedAt == null) {
+      setLoadError("Session not ready. Refresh the page.");
+      return;
+    }
+    const form = getVisibleRulingForm(document);
+    if (!form) {
+      setLoadError("Could not find the ruling form. Try refreshing.");
+      return;
+    }
     if (!form.reportValidity()) return;
     const fd = new FormData(form);
     const verdict = String(fd.get("verdict") ?? "");
@@ -229,6 +259,14 @@ export function CasePlayClient({ caseId }: { caseId: string }) {
         state.phase !== "ruling" && "xl:pr-2",
       )}
     >
+      {loadError ? (
+        <p
+          className="rounded-lg border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive"
+          role="alert"
+        >
+          {loadError}
+        </p>
+      ) : null}
       <div className="space-y-3 border-b border-border pb-4">
         <div className="flex flex-wrap items-center gap-2 text-xs uppercase tracking-wide text-primary">
           <span>Docket</span>

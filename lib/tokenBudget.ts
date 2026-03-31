@@ -2,21 +2,21 @@ import type { User } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { userHasActiveSubscription } from "@/lib/subscription";
 
-/** USD per 1M input tokens (override via env). */
-export function anthropicInputUsdPerMillion(): number {
-  const v = parseFloat(process.env.ANTHROPIC_INPUT_USD_PER_MTOK ?? "3");
-  return Number.isFinite(v) && v >= 0 ? v : 3;
+/** USD per 1M input tokens — Gemini (override via env to match your model’s pricing). */
+export function geminiInputUsdPerMillion(): number {
+  const v = parseFloat(process.env.GEMINI_INPUT_USD_PER_MTOK ?? "0.10");
+  return Number.isFinite(v) && v >= 0 ? v : 0.1;
 }
 
-/** USD per 1M output tokens (override via env). */
-export function anthropicOutputUsdPerMillion(): number {
-  const v = parseFloat(process.env.ANTHROPIC_OUTPUT_USD_PER_MTOK ?? "15");
-  return Number.isFinite(v) && v >= 0 ? v : 15;
+/** USD per 1M output tokens — Gemini (override via env). */
+export function geminiOutputUsdPerMillion(): number {
+  const v = parseFloat(process.env.GEMINI_OUTPUT_USD_PER_MTOK ?? "0.40");
+  return Number.isFinite(v) && v >= 0 ? v : 0.4;
 }
 
 export function estimateCallCostUsd(inputTokens: number, outputTokens: number): number {
-  const inCost = (inputTokens / 1_000_000) * anthropicInputUsdPerMillion();
-  const outCost = (outputTokens / 1_000_000) * anthropicOutputUsdPerMillion();
+  const inCost = (inputTokens / 1_000_000) * geminiInputUsdPerMillion();
+  const outCost = (outputTokens / 1_000_000) * geminiOutputUsdPerMillion();
   return Math.round((inCost + outCost) * 1_000_000) / 1_000_000;
 }
 

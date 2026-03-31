@@ -1,37 +1,128 @@
 import { prisma } from "@/lib/prisma";
+import {
+  localDateDiffDays,
+  formatDateInUserTimeZone,
+  maxEligibleTier,
+  minVerdictRateForTier,
+  rollingVerdictMatchRate,
+  utcChallengeDate,
+} from "@/lib/careerTier";
 
-function utcDay(d: Date): string {
-  return d.toISOString().slice(0, 10);
-}
+export type ApplyRulingRewardsMeta = {
+  caseId: string;
+  verdictMatch: boolean;
+};
 
 /**
- * Update streak and career points after a scored ruling.
+ * Update morning docket streak, career points, tier promotion/demotion, and activity.
  */
-export async function applyRulingRewards(userId: string, finalScore: number): Promise<void> {
-  const user = await prisma.user.findUnique({ where: { id: userId } });
-  if (!user) return;
+export async function applyRulingRewards(
+  userId: string,
+  finalScore: number,
+  meta: ApplyRulingRewardsMeta,
+): Promise<void> {
+  const { caseId } = meta;
 
-  const today = utcDay(new Date());
-  const last = user.lastPlayedAt ? utcDay(user.lastPlayedAt) : null;
+  await prisma.$transaction(async (tx) => {
+    const user = await tx.user.findUnique({
+      where: { id: userId },
+      select: {
+        careerPoints: true,
+        currentTier: true,
+        streakDays: true,
+        lastMorningDocketLocalDate: true,
+        timezone: true,
+        tierAccuracyWarning: true,
+        rulingsSinceTierWarning: true,
+      },
+    });
+    if (!user) return;
 
-  let streak = user.streakDays;
-  if (!last) streak = 1;
-  else if (last === today) {
-    /* same day — keep streak */
-  } else {
-    const lastDate = new Date(last + "T12:00:00.000Z");
-    const todayDate = new Date(today + "T12:00:00.000Z");
-    const diffDays = Math.round((todayDate.getTime() - lastDate.getTime()) / 86400000);
-    if (diffDays === 1) streak += 1;
-    else streak = 1;
-  }
+    const challengeDay = utcChallengeDate();
+    const daily = await tx.dailyChallenge.findUnique({
+      where: { date: challengeDay },
+      select: { caseId: true },
+    });
+    const isMorningDocket = daily?.caseId === caseId;
 
-  await prisma.user.update({
-    where: { id: userId },
-    data: {
-      careerPoints: user.careerPoints + finalScore,
-      streakDays: streak,
-      lastPlayedAt: new Date(),
-    },
+    let streakDays = user.streakDays;
+    let lastMorningDocketLocalDate = user.lastMorningDocketLocalDate;
+
+    if (isMorningDocket) {
+      const todayLocal = formatDateInUserTimeZone(new Date(), user.timezone);
+      const last = user.lastMorningDocketLocalDate;
+
+      if (last === todayLocal) {
+        /* second play same local day — do not inflate streak */
+      } else if (!last) {
+        streakDays = 1;
+        lastMorningDocketLocalDate = todayLocal;
+      } else {
+        const gap = localDateDiffDays(todayLocal, last);
+        if (gap === 1) {
+          streakDays = user.streakDays + 1;
+          lastMorningDocketLocalDate = todayLocal;
+        } else {
+          streakDays = 1;
+          lastMorningDocketLocalDate = todayLocal;
+        }
+      }
+    }
+
+    const newCareerPoints = user.careerPoints + finalScore;
+
+    const recentScored = await tx.userRuling.findMany({
+      where: { userId, status: "SCORED" },
+      orderBy: { submittedAt: "desc" },
+      take: 10,
+      select: {
+        verdict: true,
+        case: { select: { correctVerdict: true } },
+      },
+    });
+
+    const rate = rollingVerdictMatchRate(recentScored);
+
+    let currentTier = user.currentTier;
+    const maxEligible = maxEligibleTier(newCareerPoints, rate ?? 0);
+    if (maxEligible > currentTier) currentTier = maxEligible;
+
+    let tierAccuracyWarning = user.tierAccuracyWarning;
+    let rulingsSinceTierWarning = user.rulingsSinceTierWarning;
+
+    const t = currentTier;
+    const minR = minVerdictRateForTier(t);
+
+    if (t > 1 && recentScored.length >= 1 && rate !== null && minR !== undefined) {
+      if (rate < minR) {
+        if (!tierAccuracyWarning) {
+          tierAccuracyWarning = true;
+          rulingsSinceTierWarning = 0;
+        } else {
+          rulingsSinceTierWarning += 1;
+          if (rulingsSinceTierWarning >= 5 && rate < minR) {
+            currentTier = Math.max(1, currentTier - 1);
+            tierAccuracyWarning = false;
+            rulingsSinceTierWarning = 0;
+          }
+        }
+      } else {
+        tierAccuracyWarning = false;
+        rulingsSinceTierWarning = 0;
+      }
+    }
+
+    await tx.user.update({
+      where: { id: userId },
+      data: {
+        careerPoints: newCareerPoints,
+        currentTier,
+        streakDays,
+        lastMorningDocketLocalDate,
+        tierAccuracyWarning,
+        rulingsSinceTierWarning,
+        lastPlayedAt: new Date(),
+      },
+    });
   });
 }

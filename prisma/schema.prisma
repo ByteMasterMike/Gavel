@@ -33,6 +33,10 @@ model User {
   lastPlayedAt DateTime?
   timezone     String    @default("America/New_York")
 
+  lastMorningDocketLocalDate String?
+  tierAccuracyWarning        Boolean @default(false)
+  rulingsSinceTierWarning    Int     @default(0)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -87,6 +91,9 @@ model Case {
   actualOpinionExcerpt     String   @db.Text
   isOverturned             Boolean  @default(false)
   appellateReversalSummary String?  @db.Text
+  // Appellate outcome anchors for Prescient Justice (§10) when isOverturned.
+  appellateCorrectVerdict         String?
+  appellateCorrectSentenceNumeric Float?
   whyExplanation           String   @db.Text
   maxPrecedents            Int      @default(5)
 

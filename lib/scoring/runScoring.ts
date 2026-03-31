@@ -1,6 +1,7 @@
 import type { Case, CaseDocument, Precedent, User, UserRuling } from "@prisma/client";
 import { evaluateReasoning } from "@/lib/llm/evaluateReasoning";
 import { computeAccuracyScore } from "./accuracyScore";
+import { computePrescientJustice } from "./prescientJustice";
 import { computeStyleScore } from "./styleScore";
 import {
   computeWeightedTrialScore,
@@ -50,6 +51,14 @@ export async function scoreRuling(params: {
     llm.score,
   );
 
+  const prescient = computePrescientJustice(
+    caseRow,
+    ruling.verdict,
+    ruling.sentenceText,
+    ruling.sentenceNumeric,
+  );
+  const accuracyTotalWithPrescient = accuracyParts.total + prescient.points;
+
   const styleParts = computeStyleScore({
     citedPrecedentIds: ruling.citedPrecedentIds,
     hintsUsed: ruling.hintsUsed,
@@ -80,7 +89,7 @@ export async function scoreRuling(params: {
   };
 
   const weightedSubtotal = computeWeightedTrialScore(
-    accuracyParts.total,
+    accuracyTotalWithPrescient,
     styleParts.total,
     streak,
     indec,
@@ -89,13 +98,23 @@ export async function scoreRuling(params: {
 
   const breakdown: ScoreBreakdownPayload = {
     accuracy: {
-      total: accuracyParts.total,
+      total: accuracyTotalWithPrescient,
       verdictMatch: accuracyParts.verdictMatch,
       verdictPoints: accuracyParts.verdictPoints,
       damagesPoints: accuracyParts.damagesPoints,
       reasoningPoints: accuracyParts.reasoningPoints,
       sentenceRangeScore: accuracyParts.sentenceRangeScore,
       llmScore: accuracyParts.llmScore,
+      ...(prescient.points > 0
+        ? {
+            prescientJustice: {
+              points: prescient.points,
+              verdictBonus: prescient.verdictBonus,
+              damagesBonus: prescient.damagesBonus,
+              debatePrompt: prescient.debatePrompt,
+            },
+          }
+        : {}),
     },
     style: stylePayload,
     streakBonus: streak,
@@ -109,7 +128,7 @@ export async function scoreRuling(params: {
   const rank = judgeRank(finalTotal, {
     verdictMatch: accuracyParts.verdictMatch,
     styleTotal: styleParts.total,
-    accuracyTotal: accuracyParts.total,
+    accuracyTotal: accuracyTotalWithPrescient,
     tier: caseRow.tier,
     hintsUsed: ruling.hintsUsed,
     elapsedMin,
@@ -117,7 +136,7 @@ export async function scoreRuling(params: {
   });
 
   return {
-    accuracyTotal: accuracyParts.total,
+    accuracyTotal: accuracyTotalWithPrescient,
     styleTotal: styleParts.total,
     finalTotal,
     breakdown,

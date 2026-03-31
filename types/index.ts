@@ -53,6 +53,13 @@ export interface RulingSubmissionBody {
   submittedAt: string;
 }
 
+export interface PrescientJusticeBreakdown {
+  points: number;
+  verdictBonus: boolean;
+  damagesBonus: boolean;
+  debatePrompt: string | null;
+}
+
 export interface ScoreBreakdownPayload {
   accuracy: {
     total: number;
@@ -62,6 +69,8 @@ export interface ScoreBreakdownPayload {
     reasoningPoints: number;
     sentenceRangeScore: number;
     llmScore: number;
+    /** Present on overturned cases when appellate-alignment bonuses apply. */
+    prescientJustice?: PrescientJusticeBreakdown;
   };
   style: {
     total: number;

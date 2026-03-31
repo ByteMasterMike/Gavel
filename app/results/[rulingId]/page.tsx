@@ -101,6 +101,15 @@ export default function ResultsPage() {
           mitigatingFactors: data.ruling.mitigatingFactors,
         }}
         reveal={data.reveal}
+        prescientJustice={
+          data.ruling.scoreBreakdown?.accuracy.prescientJustice &&
+          data.ruling.scoreBreakdown.accuracy.prescientJustice.points > 0
+            ? {
+                points: data.ruling.scoreBreakdown.accuracy.prescientJustice.points,
+                debatePrompt: data.ruling.scoreBreakdown.accuracy.prescientJustice.debatePrompt,
+              }
+            : null
+        }
       />
 
       {!pending && data.ruling.scoreBreakdown && (

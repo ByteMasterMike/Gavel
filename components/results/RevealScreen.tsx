@@ -17,6 +17,11 @@ export type RevealPayload = {
   appellateReversalSummary: string | null;
 };
 
+export type PrescientReveal = {
+  points: number;
+  debatePrompt: string | null;
+};
+
 type PlayerRuling = {
   verdict: string;
   sentenceText: string;
@@ -29,9 +34,11 @@ type PlayerRuling = {
 type Props = {
   player: PlayerRuling;
   reveal: RevealPayload;
+  /** Shown after scoring when Prescient Justice bonuses applied. */
+  prescientJustice?: PrescientReveal | null;
 };
 
-export function RevealScreen({ player, reveal }: Props) {
+export function RevealScreen({ player, reveal, prescientJustice }: Props) {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-2 text-primary">
@@ -101,6 +108,25 @@ export function RevealScreen({ player, reveal }: Props) {
               You were scored against the trial court outcome — the standard for this historical
               seat.
             </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {prescientJustice && prescientJustice.points > 0 && prescientJustice.debatePrompt && (
+        <Card className="border-emerald-500/40 bg-emerald-500/5">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Prescient Justice — +{prescientJustice.points} pts</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3 text-sm text-muted-foreground">
+            <p className="text-foreground">
+              History moved after the trial you just sat. Part of your ruling anticipated where a
+              later panel pushed the case — that foresight earns a separate bonus on top of trial
+              scoring.
+            </p>
+            <div>
+              <p className="text-xs font-medium uppercase text-emerald-200/90">Debate prompt</p>
+              <p className="mt-1 leading-relaxed">{prescientJustice.debatePrompt}</p>
+            </div>
           </CardContent>
         </Card>
       )}

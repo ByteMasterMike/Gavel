@@ -220,6 +220,8 @@ async function main() {
       actualOpinionExcerpt:
         "The Court finds defendant LIABLE for fraudulent inducement. Compensatory damages are awarded in the amount of $500,000. Punitive damages are denied given the absence of clear and convincing evidence of malice.",
       isOverturned: true,
+      appellateCorrectVerdict: "LIABLE",
+      appellateCorrectSentenceNumeric: 320_000,
       appellateReversalSummary:
         "The Court of Appeals vacated the damages award, holding the trial court erred by excluding probative expert testimony on market-based mitigation. The case was remanded for recalculation of damages not to exceed $320,000 absent new findings.",
       whyExplanation:

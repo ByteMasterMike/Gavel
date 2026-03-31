@@ -70,10 +70,30 @@ export function ScoreBreakdown({ breakdown, animate = true }: Props) {
               </div>
               <Progress value={acc.llmScore * 100} />
             </div>
+            {acc.prescientJustice && acc.prescientJustice.points > 0 && (
+              <div className="rounded-md border border-violet-500/40 bg-violet-500/10 px-3 py-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Prescient Justice</span>
+                  <span className="font-medium text-violet-200">
+                    +{acc.prescientJustice.points.toLocaleString()}
+                  </span>
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {acc.prescientJustice.verdictBonus && acc.prescientJustice.damagesBonus
+                    ? "Outcome and remedy aligned with the later appellate record."
+                    : acc.prescientJustice.verdictBonus
+                      ? "Your verdict matched where the appeals court landed."
+                      : "Your remedy sat closer to the appellate anchor than the trial award."}
+                </p>
+              </div>
+            )}
             <Separator />
             <div className="flex justify-between font-semibold">
               <span>Accuracy total</span>
-              <span>{acc.total.toLocaleString()} / 10,000</span>
+              <span>
+                {acc.total.toLocaleString()}
+                {acc.prescientJustice && acc.prescientJustice.points > 0 ? " pts" : " / 10,000"}
+              </span>
             </div>
           </CardContent>
         </Card>

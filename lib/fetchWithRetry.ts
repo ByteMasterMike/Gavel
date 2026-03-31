@@ -1,8 +1,8 @@
 /** Delays between attempts (after first failure). Up to 1 + delays.length attempts. */
-const RETRY_DELAYS_MS = [500, 1000, 2000];
+const RETRY_DELAYS_MS = [600, 1500];
 
 /** Max time per attempt for fetch + reading/parsing JSON body (body read can hang after headers). */
-const FETCH_TIMEOUT_MS = 25_000;
+const FETCH_TIMEOUT_MS = 10_000;
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));

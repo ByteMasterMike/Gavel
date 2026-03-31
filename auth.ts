@@ -3,6 +3,13 @@ import Google from "next-auth/providers/google";
 import Credentials from "next-auth/providers/credentials";
 import { prisma } from "@/lib/prisma";
 
+/** Canonical site URL for OAuth callbacks; Auth.js reads AUTH_URL from the environment. */
+const authUrl =
+  process.env.AUTH_URL?.trim() || process.env.NEXTAUTH_URL?.trim();
+if (authUrl) {
+  process.env.AUTH_URL = authUrl;
+}
+
 /** Auth.js requires a non-empty secret or it returns "Server error / server configuration". */
 const authSecret =
   process.env.AUTH_SECRET?.trim() || process.env.NEXTAUTH_SECRET?.trim();

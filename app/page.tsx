@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { CareerSection } from "@/components/home/CareerSection";
+import { DailyLeaderboard } from "@/components/home/DailyLeaderboard";
 import { fetchOkJson } from "@/lib/fetchWithRetry";
 
 type CaseRow = {
@@ -34,21 +35,25 @@ export default function Home() {
     setCasesStatus("loading");
     setCases([]);
 
-    void (async () => {
-      const dailyRes = await fetchOkJson<DailyPayload>("/api/daily?summary=1");
-      if (dailyRes.ok) {
-        setDailyId(dailyRes.data.daily?.case.id ?? null);
+    try {
+      void (async () => {
+        const dailyRes = await fetchOkJson<DailyPayload>("/api/daily?summary=1");
+        if (dailyRes.ok) {
+          setDailyId(dailyRes.data.daily?.case.id ?? null);
+        }
+      })();
+
+      const casesRes = await fetchOkJson<CasesPayload>("/api/cases");
+      if (!casesRes.ok) {
+        setCasesStatus("error");
+        return;
       }
-    })();
 
-    const casesRes = await fetchOkJson<CasesPayload>("/api/cases");
-    if (!casesRes.ok) {
+      setCases(casesRes.data.cases);
+      setCasesStatus("ready");
+    } catch {
       setCasesStatus("error");
-      return;
     }
-
-    setCases(casesRes.data.cases);
-    setCasesStatus("ready");
   }, []);
 
   useEffect(() => {
@@ -93,17 +98,20 @@ export default function Home() {
       {session?.user && <CareerSection key={session.user.id} />}
 
       {dailyId && (
-        <Card className="border-primary/40 bg-primary/5">
-          <CardHeader>
-            <CardTitle>The Morning Docket</CardTitle>
-            <CardDescription>Today&apos;s shared challenge — same case worldwide.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Link href={`/case/${dailyId}`} className={cn(buttonVariants())}>
-              Play today&apos;s case
-            </Link>
-          </CardContent>
-        </Card>
+        <div className="flex flex-col gap-6">
+          <Card className="border-primary/40 bg-primary/5">
+            <CardHeader>
+              <CardTitle>The Morning Docket</CardTitle>
+              <CardDescription>Today&apos;s shared challenge — same case worldwide.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Link href={`/case/${dailyId}`} className={cn(buttonVariants())}>
+                Play today&apos;s case
+              </Link>
+            </CardContent>
+          </Card>
+          <DailyLeaderboard />
+        </div>
       )}
 
       <div>

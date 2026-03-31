@@ -83,7 +83,10 @@ async function runScoreJob(rulingId: string) {
     },
   });
 
-  await applyRulingRewards(ruling.userId, result.finalTotal);
+  await applyRulingRewards(ruling.userId, result.finalTotal, {
+    caseId: ruling.caseId,
+    verdictMatch: result.breakdown.accuracy.verdictMatch,
+  });
 }
 
 export async function POST(req: Request) {
@@ -91,7 +94,14 @@ export async function POST(req: Request) {
   const userId = session?.user?.id;
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const dbUser = await prisma.user.findUnique({ where: { id: userId } });
+  let dbUser;
+  try {
+    dbUser = await prisma.user.findUnique({ where: { id: userId } });
+  } catch (e) {
+    console.error("[ruling POST] user lookup", e);
+    return NextResponse.json({ error: "Could not verify account." }, { status: 500 });
+  }
+
   if (!dbUser) {
     return NextResponse.json(
       {
@@ -117,7 +127,14 @@ export async function POST(req: Request) {
     );
   }
 
-  const caseRow = await prisma.case.findUnique({ where: { id: parsed.caseId } });
+  let caseRow;
+  try {
+    caseRow = await prisma.case.findUnique({ where: { id: parsed.caseId } });
+  } catch (e) {
+    console.error("[ruling POST] case lookup", e);
+    return NextResponse.json({ error: "Could not load case." }, { status: 500 });
+  }
+
   if (!caseRow) return NextResponse.json({ error: "Case not found" }, { status: 404 });
 
   if (parsed.citedPrecedentIds.length > caseRow.maxPrecedents) {

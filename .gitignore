@@ -23,12 +23,16 @@
 # misc
 .DS_Store
 *.pem
+/Untitled
 
 # debug
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+
+# Cursor MCP (local secrets — copy from .cursor/mcp.json.example)
+.cursor/mcp.json
 
 # env files
 .env

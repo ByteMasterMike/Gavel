@@ -34,15 +34,14 @@ export default function Home() {
     setCasesStatus("loading");
     setCases([]);
 
-    const [casesRes, dailyRes] = await Promise.all([
-      fetchOkJson<CasesPayload>("/api/cases"),
-      fetchOkJson<DailyPayload>("/api/daily"),
-    ]);
+    void (async () => {
+      const dailyRes = await fetchOkJson<DailyPayload>("/api/daily?summary=1");
+      if (dailyRes.ok) {
+        setDailyId(dailyRes.data.daily?.case.id ?? null);
+      }
+    })();
 
-    if (dailyRes.ok) {
-      setDailyId(dailyRes.data.daily?.case.id ?? null);
-    }
-
+    const casesRes = await fetchOkJson<CasesPayload>("/api/cases");
     if (!casesRes.ok) {
       setCasesStatus("error");
       return;

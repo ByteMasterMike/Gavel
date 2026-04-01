@@ -1,0 +1,92 @@
+{
+  "title": "Miranda v. Arizona — Custodial Confession",
+  "tier": 1,
+  "kind": "CRIMINAL",
+  "category": "Criminal Procedure",
+  "briefSummary": "Defendant Ernesto Miranda was arrested at home and questioned at a police station for several hours without counsel and without being advised of the right to remain silent or to appointed counsel. He signed a typed confession. At trial the confession was admitted over objection. The defense argues the statements were coerced and should have been excluded. The State argues the confession was voluntary and the process was fair. You are reviewing the trial record in light of Fifth Amendment challenges to the use of unwarned custodial statements.",
+  "parTimeMinutes": 14,
+  "correctVerdict": "GUILTY",
+  "correctSentenceText": "Guilty; 20 to 30 years on each count, sentences to run concurrently, consistent with the trial court judgment that relied on the written confession.",
+  "correctSentenceNumeric": 25,
+  "correctReasoningSummary": "The trial court treated the signed confession as voluntary and sufficient to support conviction, deferring to police accounts that no threats were used and that the defendant understood what he signed.",
+  "actualOpinionExcerpt": "The Supreme Court held that the prosecution may not use statements stemming from custodial interrogation of the defendant unless it demonstrates the use of procedural safeguards effective to secure the privilege against self-incrimination. Unless other fully effective means are adopted, a person in custody must prior to questioning be warned that he has a right to remain silent, that any statement he does make may be used as evidence against him, and that he has a right to the presence of an attorney. The judgment of the Supreme Court of Arizona is reversed.",
+  "isOverturned": true,
+  "appellateReversalSummary": "The U.S. Supreme Court reversed. Custodial interrogation is inherently compelling; absent warnings and an opportunity to invoke the privilege, statements obtained are not admissible to prove guilt. Convictions resting materially on such statements cannot stand when the Fifth Amendment is violated.",
+  "appellateCorrectVerdict": "NOT_GUILTY",
+  "appellateCorrectSentenceNumeric": null,
+  "whyExplanation": "Miranda is the landmark rule that police must give familiar warnings before custodial interrogation. Without them, the Fifth Amendment privilege is not practically available, so using those statements at trial violates the Constitution. That is why the high court reversed a conviction that depended on unwarned station-house questioning.",
+  "maxPrecedents": 5,
+  "requiresSubscription": false,
+  "documents": [
+    {
+      "title": "Arrest & Booking Sheet",
+      "content": "Subject taken into custody at residence; transported to Phoenix detective bureau. Time in custody before statement: approximately two hours. No attorney present. Notes: 'Interview room 3.'",
+      "sortOrder": 0,
+      "isAdmissible": true,
+      "isMaterial": true
+    },
+    {
+      "title": "Typed Confession (Signed)",
+      "content": "Narrative of offenses with blanks filled in by hand; ends with printed waiver language and defendant signature. No contemporaneous recording of oral warnings appears in the file; officer affidavit states defendant 'agreed to talk.'",
+      "sortOrder": 1,
+      "isAdmissible": true,
+      "isMaterial": true
+    },
+    {
+      "title": "Detective Interview Log (Partial)",
+      "content": "Chronology lists arrival, fingerprinting, and 'interview' blocks. Margin note: 'No lawyer requested — continued questioning.' Does not list Miranda-style advisements.",
+      "sortOrder": 2,
+      "isAdmissible": true,
+      "isMaterial": true
+    },
+    {
+      "title": "Trial Transcript Excerpt — Objection",
+      "content": "Defense: 'Move to suppress — no counsel, no warnings, station-house atmosphere.' State: 'Voluntary — defendant literate, signed willingly.' Court: 'Overruled — confession admitted.'",
+      "sortOrder": 3,
+      "isAdmissible": true,
+      "isMaterial": true
+    }
+  ],
+  "precedents": [
+    {
+      "name": "Massiah v. United States",
+      "citation": "377 U.S. 201 (1964)",
+      "summary": "The Sixth Amendment excludes deliberate elicitation of incriminating statements from an indicted defendant outside the presence of counsel.",
+      "sortOrder": 0,
+      "isRelevant": true,
+      "weightMultiplier": 2.2
+    },
+    {
+      "name": "Escobedo v. Illinois",
+      "citation": "378 U.S. 478 (1964)",
+      "summary": "When investigation focuses on an accused who is in custody and denied counsel, statements obtained may be barred — a bridge toward treating station-house interrogation as a critical stage.",
+      "sortOrder": 1,
+      "isRelevant": true,
+      "weightMultiplier": 2
+    },
+    {
+      "name": "Crooker v. California",
+      "citation": "357 U.S. 433 (1958)",
+      "summary": "Older decision emphasizing voluntariness of confessions without the later Miranda warning framework; often distinguished after 1966.",
+      "sortOrder": 2,
+      "isRelevant": false,
+      "weightMultiplier": 1
+    },
+    {
+      "name": "Powell v. Alabama",
+      "citation": "287 U.S. 45 (1932)",
+      "summary": "Right to counsel in capital trials — foundational for later expansion of counsel rights in criminal prosecutions.",
+      "sortOrder": 3,
+      "isRelevant": true,
+      "weightMultiplier": 1.5
+    },
+    {
+      "name": "Olmstead v. United States",
+      "citation": "277 U.S. 438 (1928)",
+      "summary": "Historical wiretap case under Fourth Amendment theories; limited usefulness for Fifth Amendment custodial interrogation warnings.",
+      "sortOrder": 4,
+      "isRelevant": false,
+      "weightMultiplier": 1
+    }
+  ]
+}

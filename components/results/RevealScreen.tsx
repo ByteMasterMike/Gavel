@@ -16,6 +16,8 @@ export type RevealPayload = {
   whyExplanation: string;
   isOverturned: boolean;
   appellateReversalSummary: string | null;
+  /** Criminal appellate-seat cases: scored disposition is REVERSED/AFFIRMED. */
+  appellateSeat: boolean;
 };
 
 export type PrescientReveal = {
@@ -76,7 +78,11 @@ export function RevealScreen({ player, reveal, prescientJustice }: Props) {
           <CardContent className="space-y-2 text-sm">
             <p>
               <span className="text-muted-foreground">
-                {reveal.kind === "CRIMINAL" ? "Verdict: " : "Liability: "}
+                {reveal.kind === "CRIMINAL" && reveal.appellateSeat
+                  ? "Disposition: "
+                  : reveal.kind === "CRIMINAL"
+                    ? "Verdict: "
+                    : "Liability: "}
               </span>
               <span className="font-semibold">{player.verdict.replaceAll("_", " ")}</span>
             </p>
@@ -98,12 +104,16 @@ export function RevealScreen({ player, reveal, prescientJustice }: Props) {
         <Card className="border-primary/30 bg-card/90">
           <CardHeader className="pb-2">
             <CardTitle className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-              Trial outcome (scored)
+              {reveal.kind === "CRIMINAL" && reveal.appellateSeat
+                ? "Correct disposition (scored)"
+                : "Trial outcome (scored)"}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
             <p>
-              <span className="text-muted-foreground">Outcome: </span>
+              <span className="text-muted-foreground">
+                {reveal.kind === "CRIMINAL" && reveal.appellateSeat ? "Disposition: " : "Outcome: "}
+              </span>
               <span className="font-semibold">{reveal.correctVerdict.replaceAll("_", " ")}</span>
             </p>
             <p className="whitespace-pre-wrap">{reveal.correctSentenceText}</p>

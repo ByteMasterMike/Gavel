@@ -13,6 +13,7 @@ export function toPublicCase(
     briefSummary: row.briefSummary,
     parTimeMinutes: row.parTimeMinutes,
     maxPrecedents: row.maxPrecedents,
+    appellateSeat: row.appellateSeat,
     documents: row.documents
       .slice()
       .sort((a, b) => a.sortOrder - b.sortOrder)

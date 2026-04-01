@@ -47,8 +47,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               const email = "dev@thegavel.local";
               const user = await prisma.user.upsert({
                 where: { email },
-                create: { email, name: "Dev Judge" },
-                update: { name: "Dev Judge" },
+                create: {
+                  email,
+                  name: "Dev Judge",
+                  currentTier: 5,
+                  careerPoints: 400_000,
+                },
+                update: {
+                  name: "Dev Judge",
+                  currentTier: 5,
+                  careerPoints: 400_000,
+                },
               });
               return {
                 id: user.id,

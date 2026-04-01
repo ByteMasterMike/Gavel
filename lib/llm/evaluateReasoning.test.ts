@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { formatReasoningFeedbackForDisplay, parseReasoningEvaluation } from "./evaluateReasoning";
+import {
+  formatReasoningFeedbackForDisplay,
+  isTransientGeminiError,
+  parseReasoningEvaluation,
+  shouldFallbackJsonToPlain,
+} from "./evaluateReasoning";
 
 const imp = ["First concrete step.", "Second concrete step."];
 
@@ -101,5 +106,26 @@ describe("formatReasoningFeedbackForDisplay", () => {
     expect(s).toContain("Summary");
     expect(s).toContain("Budget mode.");
     expect(s).not.toContain("How to improve");
+  });
+});
+
+describe("Gemini error classification", () => {
+  it("treats 500/502/408 as transient", () => {
+    expect(isTransientGeminiError({ status: 500, message: "Internal" })).toBe(true);
+    expect(isTransientGeminiError({ status: 502, message: "Bad gateway" })).toBe(true);
+    expect(isTransientGeminiError({ status: 408, message: "Timeout" })).toBe(true);
+  });
+
+  it("does not treat 401 as transient", () => {
+    expect(isTransientGeminiError({ status: 401, message: "Unauthorized" })).toBe(false);
+  });
+
+  it("shouldFallbackJsonToPlain on generic 400", () => {
+    expect(shouldFallbackJsonToPlain({ status: 400, message: "Unknown bad request" })).toBe(true);
+  });
+
+  it("shouldFallbackJsonToPlain false on auth-like 400", () => {
+    const err = Object.assign(new Error("API_KEY_INVALID: invalid"), { status: 400 });
+    expect(shouldFallbackJsonToPlain(err)).toBe(false);
   });
 });

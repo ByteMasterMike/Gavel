@@ -1,0 +1,47 @@
+{
+  "title": "Example v. Sample — Template",
+  "tier": 1,
+  "kind": "CRIMINAL",
+  "category": "Criminal Law",
+  "briefSummary": "Player-facing case overview. Do not include the court's final holding or redacted outcome spoilers you want hidden from the briefing.",
+  "parTimeMinutes": 10,
+  "correctVerdict": "GUILTY",
+  "correctSentenceText": "Sentence or remedy text as scored against the player.",
+  "correctSentenceNumeric": null,
+  "correctReasoningSummary": "Short summary of the actual judge's reasoning for LLM scoring alignment.",
+  "actualOpinionExcerpt": "Verbatim or lightly edited excerpt from the real opinion establishing the correct answer.",
+  "isOverturned": false,
+  "appellateReversalSummary": null,
+  "appellateCorrectVerdict": null,
+  "appellateCorrectSentenceNumeric": null,
+  "whyExplanation": "Plain-language 'why' for the reveal screen.",
+  "maxPrecedents": 5,
+  "requiresSubscription": false,
+  "documents": [
+    {
+      "title": "Evidence document A",
+      "content": "Full text shown in the evidence locker.",
+      "sortOrder": 0,
+      "isAdmissible": true,
+      "isMaterial": true
+    }
+  ],
+  "precedents": [
+    {
+      "name": "Foundational case",
+      "citation": "123 F.3d 456 (9th Cir. 2000)",
+      "summary": "One-paragraph summary for the law library.",
+      "sortOrder": 0,
+      "isRelevant": true,
+      "weightMultiplier": 2.0
+    },
+    {
+      "name": "Decoy case",
+      "citation": "999 U.S. 1 (1999)",
+      "summary": "Plausible but not controlling — for style scoring.",
+      "sortOrder": 1,
+      "isRelevant": false,
+      "weightMultiplier": 1.0
+    }
+  ]
+}

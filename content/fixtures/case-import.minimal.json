@@ -1,0 +1,36 @@
+{
+  "title": "Fixture — Minimal Import Test",
+  "tier": 1,
+  "kind": "CRIMINAL",
+  "category": "Fixture",
+  "briefSummary": "Synthetic fixture for validating the import script. Not for production play.",
+  "parTimeMinutes": 8,
+  "correctVerdict": "GUILTY",
+  "correctSentenceText": "$100 fine.",
+  "correctSentenceNumeric": 100,
+  "correctReasoningSummary": "Fixture reasoning summary for scoring alignment.",
+  "actualOpinionExcerpt": "The Court finds the defendant GUILTY. Judgment: $100 fine.",
+  "isOverturned": false,
+  "whyExplanation": "Fixture explanation for the reveal screen.",
+  "maxPrecedents": 3,
+  "requiresSubscription": false,
+  "documents": [
+    {
+      "title": "Fixture exhibit A",
+      "content": "Fixture document body text.",
+      "sortOrder": 0,
+      "isAdmissible": true,
+      "isMaterial": true
+    }
+  ],
+  "precedents": [
+    {
+      "name": "Fixture precedent",
+      "citation": "1 F.3d 1 (1st Cir. 1999)",
+      "summary": "Holding summary for fixture.",
+      "sortOrder": 0,
+      "isRelevant": true,
+      "weightMultiplier": 1.5
+    }
+  ]
+}

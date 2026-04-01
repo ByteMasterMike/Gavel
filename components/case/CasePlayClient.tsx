@@ -44,6 +44,7 @@ function getVisibleRulingForm(doc: Document): HTMLFormElement | null {
 
 function LegalPadPanel({
   kind,
+  appellateSeat,
   phase,
   submitting,
   onSubmit,
@@ -51,6 +52,7 @@ function LegalPadPanel({
   layout = "rail",
 }: {
   kind: PublicCasePayload["kind"];
+  appellateSeat: boolean;
   phase: GamePhase;
   submitting: boolean;
   onSubmit: () => void;
@@ -86,7 +88,7 @@ function LegalPadPanel({
         <h2 className="font-heading text-lg text-foreground">Virtual Legal Pad</h2>
         <p className="text-xs uppercase tracking-wide text-muted-foreground">Drafting preliminary verdict</p>
       </div>
-      <RulingTemplate kind={kind} className="max-w-none space-y-5" />
+      <RulingTemplate kind={kind} appellateSeat={appellateSeat} className="max-w-none space-y-5" />
       <div className="mt-auto flex flex-col gap-2 border-t border-border pt-4">
         <Button type="button" className="w-full" disabled={submitting} onClick={() => void onSubmit()}>
           {submitting ? "Submitting…" : "Finalize decision"}
@@ -388,6 +390,7 @@ export function CasePlayClient({
             <LegalPadPanel
               layout="center"
               kind={c.kind}
+              appellateSeat={c.appellateSeat}
               phase={state.phase}
               submitting={submitting}
               onSubmit={submitRuling}
@@ -404,6 +407,7 @@ export function CasePlayClient({
       <div className="hidden max-h-[calc(100vh-5rem)] min-h-0 w-full overflow-y-auto xl:block">
         <LegalPadPanel
           kind={c.kind}
+          appellateSeat={c.appellateSeat}
           phase={state.phase}
           submitting={submitting}
           onSubmit={submitRuling}

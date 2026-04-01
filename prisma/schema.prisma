@@ -142,6 +142,9 @@ model Case {
   /** Subscriber-only catalog slice; free users see only cases with false (plus Morning Docket). */
   requiresSubscription Boolean @default(false)
 
+  /** When true (criminal cases), ruling UI scores REVERSED/AFFIRMED instead of GUILTY/NOT_GUILTY. */
+  appellateSeat Boolean @default(false)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }

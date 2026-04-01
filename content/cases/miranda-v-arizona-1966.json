@@ -1,0 +1,126 @@
+{
+  "title": "Miranda v. Arizona",
+  "tier": 4,
+  "kind": "CRIMINAL",
+  "category": "Constitutional Law",
+  "briefSummary": "On March 13, 1963, Ernesto Miranda was arrested at his home in Phoenix, Arizona, and transported to a police station where he was identified by the complaining witness. Officers then took Miranda to Interrogation Room No. 2, where two detectives questioned him for approximately two hours. At no point did the officers advise Miranda that he had a right to have an attorney present. Miranda ultimately signed a written confession, which included a typed clause stating it was made voluntarily and with 'full knowledge of my legal rights.' At trial, both the written confession and officers' testimony about a prior oral confession were admitted over defense objection. The jury convicted Miranda of kidnapping and rape; he was sentenced to concurrent terms of 20 to 30 years on each count. The Supreme Court of Arizona affirmed, emphasizing that Miranda had not specifically requested counsel. The Supreme Court of the United States granted certiorari, consolidating Miranda's case with three others — Vignera v. New York, Westover v. United States, and California v. Stewart — all raising the same core question: what constitutional safeguards govern the admissibility of statements obtained from a defendant during custodial police interrogation?",
+  "parTimeMinutes": 24,
+  "correctVerdict": "REVERSED",
+  "correctSentenceText": "The judgment of the Supreme Court of Arizona in No. 759 is reversed. Miranda's conviction cannot stand because the statements obtained during custodial interrogation were inadmissible — the officers failed to apprise him of his right to counsel and his right against self-incrimination before questioning, and the typed 'full knowledge' clause on the confession form does not constitute a knowing and intelligent waiver of constitutional rights.",
+  "correctReasoningSummary": "The Court held that the Fifth Amendment privilege against self-incrimination applies with full force to custodial police interrogation. Because incommunicado interrogation is inherently coercive — isolating the suspect, projecting confidence in guilt, and employing psychological pressure techniques documented in police manuals — no statement obtained in that atmosphere can be treated as the product of free choice unless procedural safeguards dispel the compulsion. Those safeguards require, at minimum, prior warnings that the suspect has the right to remain silent, that anything said may be used against him, that he has the right to the presence of counsel, and that counsel will be appointed if he cannot afford one. Waiver of these rights must be voluntary, knowing, and intelligent; it cannot be presumed from silence or from the eventual fact of a confession. Because Miranda received none of these warnings and no equivalent protection was shown, his statements were constitutionally inadmissible regardless of whether they appeared voluntary under traditional due-process analysis.",
+  "actualOpinionExcerpt": "the prosecution may not use statements, whether exculpatory or inculpatory, stemming from custodial interrogation of the defendant unless it demonstrates the use of procedural safeguards effective to secure the privilege against self-incrimination. By custodial interrogation, we mean questioning initiated by law enforcement officers after a person has been taken into custody or otherwise deprived of his freedom of action in any significant way. Prior to any questioning, the person must be warned that he has a right to remain silent, that any statement he does make may be used as evidence against him, and that he has a right to the presence of an attorney, either retained or appointed.",
+  "isOverturned": false,
+  "whyExplanation": "The Fifth Amendment protects people from being compelled to be witnesses against themselves. The Court decided that custodial police interrogation is so pressure-filled that confessions from it should not be used at trial unless police first gave clear warnings: you may remain silent, what you say can be used in court, and you may have a lawyer (appointed if you cannot afford one). Miranda did not get those warnings, so using his confession to convict him was not allowed. That is why the Supreme Court reversed the state court judgment.",
+  "maxPrecedents": 7,
+  "requiresSubscription": false,
+  "appellateSeat": true,
+  "documents": [
+    {
+      "sortOrder": 0,
+      "title": "Written Confession Signed by Miranda",
+      "content": "A two-page signed statement obtained from Ernesto Miranda after approximately two hours of interrogation in Interrogation Room No. 2 of the Phoenix Police Department detective bureau. The top of the document bears a typed paragraph stating the confession was made voluntarily, without threats or promises of immunity, and 'with full knowledge of my legal rights, understanding any statement I make may be used against me.' One of the interrogating officers later testified he read this paragraph to Miranda — but apparently not until after Miranda had already confessed orally. Miranda was not advised at any point that he had a right to have an attorney present during questioning.",
+      "isAdmissible": false,
+      "isMaterial": true
+    },
+    {
+      "sortOrder": 1,
+      "title": "Trial Testimony of Interrogating Officers",
+      "content": "Both officers who interrogated Miranda testified at trial. They admitted Miranda was not advised that he had a right to have an attorney present. One officer stated they told Miranda anything he said could be used against him and that he was not required by law to tell them anything; the other officer stated he did not tell Miranda that anything he said would be held against him or that Miranda could consult an attorney. The officers emerged from the interrogation room two hours after the questioning began, in possession of the signed written confession.",
+      "isAdmissible": false,
+      "isMaterial": true
+    },
+    {
+      "sortOrder": 2,
+      "title": "Arizona Supreme Court Opinion Affirming Conviction",
+      "content": "The Supreme Court of Arizona affirmed Miranda's conviction, holding that his constitutional rights were not violated in obtaining the confession. The court placed heavy emphasis on the fact that Miranda did not specifically request counsel at any point during the interrogation. The court concluded the confession was admissible under then-existing voluntariness standards.",
+      "isAdmissible": true,
+      "isMaterial": true
+    },
+    {
+      "sortOrder": 3,
+      "title": "Police Interrogation Manuals (Inbau & Reid; O'Hara)",
+      "content": "Excerpts from Inbau & Reid, Criminal Interrogation and Confessions (1962), and O'Hara, Fundamentals of Criminal Investigation (1956), used by law enforcement agencies as training guides. The manuals describe techniques including: isolating the subject ('the principal psychological factor contributing to a successful interrogation is privacy'); projecting certainty of guilt; minimizing the moral seriousness of the offense; employing 'Mutt and Jeff' (friendly-unfriendly) two-officer psychological pressure; staged false line-up identifications; and using psychological conditioning before acknowledging a suspect's right to remain silent in order to undermine that right's practical effect.",
+      "isAdmissible": true,
+      "isMaterial": true
+    },
+    {
+      "sortOrder": 4,
+      "title": "Solicitor General Letter Regarding FBI Warning Practices",
+      "content": "A letter submitted to the Court from the Solicitor General describing FBI interrogation practices. The standard FBI warning given to suspects and arrested persons before questioning advises: (1) the person has a right to say nothing; (2) the person has a right to counsel; (3) any statement made may be used against the person in court. After passage of the Criminal Justice Act of 1964, FBI agents also advise persons under arrest for FBI-jurisdiction offenses of their right to free counsel if unable to pay. When a person indicates a desire to consult counsel before speaking, the interview is terminated.",
+      "isAdmissible": true,
+      "isMaterial": true
+    },
+    {
+      "sortOrder": 5,
+      "title": "Complaining Witness Identification at Police Station",
+      "content": "Before the interrogation began, the complaining witness identified Miranda in a police line-up at the station. This identification occurred prior to Miranda's placement in the interrogation room and was separate from the confession. Eyewitness identification evidence was available to prosecutors independent of any statement Miranda made.",
+      "isAdmissible": true,
+      "isMaterial": false
+    },
+    {
+      "sortOrder": 6,
+      "title": "Companion Case Records: Vignera, Westover, and Stewart",
+      "content": "Consolidated records from the three companion cases decided the same day. Michael Vignera (No. 760): gave oral admission to detective and signed statement to assistant district attorney; neither officer gave any rights warning; trial judge instructed jury that New York law did not require such warnings. Carl Calvin Westover (No. 761): interrogated by Kansas City police through the night and morning without warnings, then immediately handed to FBI agents who obtained signed confessions after further questioning; the continuous custodial atmosphere negated the FBI's late-given warnings. Roy Allen Stewart (No. 584): held five days, interrogated nine separate times by Los Angeles police; no record that rights were ever given; confessed on the ninth session after steadfast denial throughout.",
+      "isAdmissible": true,
+      "isMaterial": true
+    }
+  ],
+  "precedents": [
+    {
+      "name": "Escobedo v. Illinois",
+      "citation": "378 U.S. 478 (1964)",
+      "summary": "Where police interrogation has focused on a particular accused, the accused has requested and been denied counsel, and the accused has not been warned of his right to remain silent, statements obtained are inadmissible under the Sixth Amendment right to counsel. (Immediate predecessor to Miranda; the Court explicitly reaffirms and extends Escobedo's reasoning, grounding the new rule in the Fifth Amendment rather than the Sixth.)",
+      "sortOrder": 0,
+      "isRelevant": true,
+      "weightMultiplier": 1.9
+    },
+    {
+      "name": "Malloy v. Hogan",
+      "citation": "378 U.S. 1 (1964)",
+      "summary": "The Fifth Amendment privilege against self-incrimination applies to the states through the Fourteenth Amendment, and federal standards governing the privilege apply with full force in state proceedings. (Foundational for the Court's ability to impose the Miranda framework on state interrogations; decided one week before Escobedo.)",
+      "sortOrder": 1,
+      "isRelevant": true,
+      "weightMultiplier": 1.7
+    },
+    {
+      "name": "Bram v. United States",
+      "citation": "168 U.S. 532 (1897)",
+      "summary": "In federal criminal trials, the voluntariness of a confession is controlled by the Fifth Amendment; a confession is inadmissible if, due to legally cognizable causes engendering hope or fear, the accused was involuntarily impelled to make a statement he would otherwise have withheld. (The Court draws on Bram to establish that the Fifth Amendment standard for compulsion governs custodial confessions.)",
+      "sortOrder": 2,
+      "isRelevant": true,
+      "weightMultiplier": 1.4
+    },
+    {
+      "name": "Gideon v. Wainwright",
+      "citation": "372 U.S. 335 (1963)",
+      "summary": "The Sixth Amendment right to counsel applies to the states; indigent defendants in state criminal proceedings are entitled to appointed counsel. (Cited to support the requirement that Miranda warnings inform indigent suspects of their right to appointed counsel.)",
+      "sortOrder": 3,
+      "isRelevant": true,
+      "weightMultiplier": 1.2
+    },
+    {
+      "name": "Haynes v. Washington",
+      "citation": "373 U.S. 503 (1963)",
+      "summary": "A confession obtained after lengthy detention during which the defendant's repeated requests to contact his wife or attorney were denied was involuntary and inadmissible under the Due Process Clause. (Illustrates the prior totality-of-circumstances due-process approach that Miranda's majority supersedes with a categorical prophylactic rule; Justice Clark in dissent prefers this flexible standard.)",
+      "sortOrder": 4,
+      "isRelevant": false,
+      "weightMultiplier": 0.6
+    },
+    {
+      "name": "Johnson v. Zerbst",
+      "citation": "304 U.S. 458 (1938)",
+      "summary": "Waiver of a constitutional right must be an intentional relinquishment or abandonment of a known right or privilege; courts must indulge every reasonable presumption against waiver. (The Court cites it for the high waiver standard, but it concerns the Sixth Amendment right to counsel at trial, not pre-trial interrogation; Justice Harlan in dissent argues this Sixth Amendment precedent has no proper bearing on Fifth Amendment custodial interrogation.)",
+      "sortOrder": 5,
+      "isRelevant": false,
+      "weightMultiplier": 0.5
+    },
+    {
+      "name": "Brown v. Mississippi",
+      "citation": "297 U.S. 278 (1936)",
+      "summary": "Convictions resting on confessions extracted by physical torture violate the Due Process Clause of the Fourteenth Amendment. (Foundational due-process confession case, but it addresses overt physical coercion — the pre-Miranda standard the Court is moving beyond with a prophylactic rule applicable even absent traditional indicia of coercion.)",
+      "sortOrder": 6,
+      "isRelevant": false,
+      "weightMultiplier": 0.4
+    }
+  ]
+}

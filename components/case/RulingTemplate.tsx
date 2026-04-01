@@ -9,28 +9,39 @@ import type { CaseKind } from "@/types";
 
 type Props = {
   kind: CaseKind;
+  /** Criminal appellate-style disposition (REVERSED / AFFIRMED) instead of trial verdict. */
+  appellateSeat?: boolean;
   className?: string;
 };
 
-export function RulingTemplate({ kind, className }: Props) {
+export function RulingTemplate({ kind, appellateSeat = false, className }: Props) {
   const { setVerdict } = useCaseSession();
 
   const verdictOptions =
-    kind === "CRIMINAL"
+    kind === "CRIMINAL" && appellateSeat
       ? [
-          { value: "GUILTY", label: "Guilty" },
-          { value: "NOT_GUILTY", label: "Not guilty" },
+          { value: "REVERSED", label: "Reversed" },
+          { value: "AFFIRMED", label: "Affirmed" },
         ]
-      : [
-          { value: "LIABLE", label: "Liable" },
-          { value: "NOT_LIABLE", label: "Not liable" },
-        ];
+      : kind === "CRIMINAL"
+        ? [
+            { value: "GUILTY", label: "Guilty" },
+            { value: "NOT_GUILTY", label: "Not guilty" },
+          ]
+        : [
+            { value: "LIABLE", label: "Liable" },
+            { value: "NOT_LIABLE", label: "Not liable" },
+          ];
 
   return (
     <form data-ruling-form="" className={cn("mx-auto max-w-2xl space-y-6", className)}>
       <div className="rounded-xl border border-border bg-card p-4">
         <p className="mb-3 text-sm font-medium text-muted-foreground">
-          {kind === "CRIMINAL" ? "Verdict" : "Liability finding"}
+          {kind === "CRIMINAL" && appellateSeat
+            ? "Disposition"
+            : kind === "CRIMINAL"
+              ? "Verdict"
+              : "Liability finding"}
         </p>
         <div className="flex flex-wrap gap-3">
           {verdictOptions.map((o) => (

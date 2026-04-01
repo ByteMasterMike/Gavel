@@ -14,7 +14,9 @@
     "db:deploy": "dotenv -e .env --override -- prisma migrate deploy",
     "db:seed": "dotenv -e .env --override -- prisma db seed",
     "db:reset-dev": "dotenv -e .env --override -- tsx prisma/reset-dev.ts",
-    "db:migrate": "dotenv -e .env --override -- prisma migrate dev"
+    "db:migrate": "dotenv -e .env --override -- prisma migrate dev",
+    "import-case": "dotenv -e .env --override -- tsx scripts/import-case.ts",
+    "set-daily-challenge": "dotenv -e .env --override -- tsx scripts/set-daily-challenge.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
@@ -34,7 +36,8 @@
     "react-dom": "19.2.4",
     "shadcn": "^4.1.1",
     "tailwind-merge": "^3.5.0",
-    "tw-animate-css": "^1.4.0"
+    "tw-animate-css": "^1.4.0",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

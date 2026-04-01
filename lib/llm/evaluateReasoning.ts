@@ -7,7 +7,12 @@ import {
 } from "@google/generative-ai";
 import type { GenerativeModel, GenerationConfig } from "@google/generative-ai";
 import { prisma } from "@/lib/prisma";
-import { estimateCallCostUsd } from "@/lib/tokenBudget";
+import { DEGRADED_LLM_MESSAGE, estimateCallCostUsd } from "@/lib/tokenBudget";
+import {
+  acquireGeminiThrottle,
+  isGeminiDailyCapReached,
+  isGeminiLowQuotaMode,
+} from "@/lib/llm/geminiThrottle";
 import { sanitizeReasoningInput } from "./sanitizeInput";
 
 /**
@@ -205,18 +210,47 @@ function logReasoningUsage(
     .catch(() => {});
 }
 
+/** Thrown when `response.text()` fails due to blocked/empty candidates (safety). */
+export class BlockedEvaluationError extends Error {
+  constructor() {
+    super("BLOCKED_EVALUATION");
+    this.name = "BlockedEvaluationError";
+  }
+}
+
+function isResponseTextBlockedError(err: unknown): boolean {
+  const m = errorText(err);
+  return /blocked|SAFETY|Text not available|No content|candidate was blocked|Response was blocked/i.test(m);
+}
+
+function blockedEvaluationResult(): ReasoningEvaluation {
+  return {
+    score: 0.5,
+    feedback:
+      "Automated reasoning evaluation did not return a usable scored response because the model blocked part of the output (safety or content filters). A neutral default score was applied. If this keeps happening, try shortening quoted material from the record or rephrasing sensitive descriptions.",
+    improvements: [
+      "Shorten long verbatim quotes from case documents in your ruling text.",
+      "Summarize testimony and evidence in neutral, concise language before applying legal rules.",
+    ],
+  };
+}
+
 async function generateReasoningText(
   model: GenerativeModel,
   userContent: string,
   usePlainText: boolean,
   usageLog?: { userId: string; rulingId: string; callType?: string },
+  options?: { lowQuota?: boolean },
 ): Promise<string> {
+  const lowQuota = options?.lowQuota ?? false;
   const base = getReasoningMaxOutputTokens();
   const highCap = Math.max(base, REASONING_TRUNCATION_RETRY_CAP);
-  let tokenCap = base;
-  let truncationRetried = false;
+  /** Low-quota: one generateContent with high cap to avoid an extra MAX_TOKENS retry burning RPM. */
+  let tokenCap = lowQuota ? highCap : base;
+  let truncationRetried = lowQuota;
 
   for (;;) {
+    await acquireGeminiThrottle();
     const generationConfig = (
       usePlainText
         ? { maxOutputTokens: tokenCap }
@@ -231,7 +265,15 @@ async function generateReasoningText(
       generationConfig,
     });
     const response = result.response;
-    const text = response.text();
+    let text: string;
+    try {
+      text = response.text();
+    } catch (err) {
+      if (isResponseTextBlockedError(err)) {
+        throw new BlockedEvaluationError();
+      }
+      throw err;
+    }
     logReasoningUsage(response, usageLog);
 
     const fr = response.candidates?.[0]?.finishReason;
@@ -305,18 +347,67 @@ function isNonRetryableGeminiError(err: unknown): boolean {
 function isJsonModeUnsupportedError(err: unknown): boolean {
   const m = errorText(err);
   const st = getHttpStatus(err);
-  if (st === 400 && /responseSchema|responseMimeType|JSON schema|application\/json/i.test(m)) return true;
-  if (/INVALID_ARGUMENT.*schema|unsupported.*json/i.test(m)) return true;
+  if (
+    st === 400 &&
+    /responseSchema|responseMimeType|JSON|schema|application\/json|INVALID_ARGUMENT|minItems|maxItems|items|array|constrained|decoding/i.test(
+      m,
+    )
+  ) {
+    return true;
+  }
+  if (/INVALID_ARGUMENT.*schema|unsupported.*json|schema.*not.*support/i.test(m)) return true;
   return false;
 }
 
-/** Retry only known transient failures (rate limits, overload, network). */
-function isTransientGeminiError(err: unknown): boolean {
+/**
+ * Any other HTTP 400 from JSON generation is often schema-related; try plain text once.
+ * Skip when the message clearly indicates auth/key problems (usually 403, but guard anyway).
+ */
+export function shouldFallbackJsonToPlain(err: unknown): boolean {
+  if (isJsonModeUnsupportedError(err)) return true;
+  const st = getHttpStatus(err);
+  if (st !== 400) return false;
+  const m = errorText(err);
+  if (/API_KEY_INVALID|PERMISSION_DENIED|invalid api key|api key not valid|not authorized|UNAUTHENTICATED/i.test(m)) {
+    return false;
+  }
+  return true;
+}
+
+function errorDetailsSummary(err: unknown): string {
+  if (typeof err !== "object" || err === null) return "";
+  const e = err as { errorDetails?: unknown };
+  if (e.errorDetails == null) return "";
+  try {
+    return JSON.stringify(e.errorDetails).slice(0, 500);
+  } catch {
+    return "";
+  }
+}
+
+function logEvaluateReasoningFailure(err: unknown): void {
+  const st = getHttpStatus(err);
+  const details = errorDetailsSummary(err);
+  const parts = [
+    "[evaluateReasoning] Gemini call failed:",
+    errorText(err),
+    st != null ? `status=${st}` : "",
+    details ? `details=${details}` : "",
+  ].filter(Boolean);
+  console.error(parts.join(" "), err);
+}
+
+/** Retry only known transient failures (rate limits, overload, network, Google 5xx). */
+export function isTransientGeminiError(err: unknown): boolean {
   if (isNonRetryableGeminiError(err)) return false;
   const st = getHttpStatus(err);
-  if (st === 429 || st === 503 || st === 504) return true;
+  if (st === 429 || st === 503 || st === 504 || st === 500 || st === 502 || st === 408) return true;
   const m = errorText(err).toUpperCase();
-  if (/429|RESOURCE_EXHAUSTED|503|504|UNAVAILABLE|OVERLOADED|DEADLINE_EXCEEDED|ECONNRESET|ETIMEDOUT|EAI_AGAIN|FETCH FAILED|NETWORK|TOO MANY REQUESTS|SERVICE_UNAVAILABLE/i.test(m)) {
+  if (
+    /429|408|500|502|RESOURCE_EXHAUSTED|503|504|UNAVAILABLE|OVERLOADED|DEADLINE_EXCEEDED|ECONNRESET|ETIMEDOUT|EAI_AGAIN|FETCH FAILED|NETWORK|TOO MANY REQUESTS|SERVICE_UNAVAILABLE|INTERNAL|INTERNAL_ERROR/i.test(
+      m,
+    )
+  ) {
     return true;
   }
   return false;
@@ -345,6 +436,15 @@ export async function evaluateReasoning(params: {
     };
   }
 
+  if (await isGeminiDailyCapReached()) {
+    return {
+      score: 0.5,
+      feedback: DEGRADED_LLM_MESSAGE,
+      improvements: [],
+    };
+  }
+
+  const lowQuota = isGeminiLowQuotaMode();
   const numericLine =
     params.studentSentenceNumeric != null && Number.isFinite(params.studentSentenceNumeric)
       ? `Numeric remedy amount (if any): ${params.studentSentenceNumeric}`
@@ -385,21 +485,28 @@ ${studentBlock}
 
   const rawMaxRetries = parseInt(process.env.GEMINI_MAX_RETRIES ?? "2", 10);
   const maxRetries = Number.isFinite(rawMaxRetries) ? Math.min(8, Math.max(0, rawMaxRetries)) : 2;
+  const rawLowQuotaMaxRetries = parseInt(process.env.GEMINI_LOW_QUOTA_MAX_RETRIES ?? "1", 10);
+  const lowQuotaMaxRetries = Number.isFinite(rawLowQuotaMaxRetries)
+    ? Math.min(8, Math.max(0, rawLowQuotaMaxRetries))
+    : 1;
+  const effectiveMaxRetries = lowQuota ? Math.min(maxRetries, lowQuotaMaxRetries) : maxRetries;
   const rawBaseMs = parseInt(process.env.GEMINI_RETRY_BASE_MS ?? "800", 10);
   const baseMs = Number.isFinite(rawBaseMs) ? Math.min(8000, Math.max(100, rawBaseMs)) : 800;
-  const maxAttempts = maxRetries + 1;
+  const maxAttempts = effectiveMaxRetries + 1;
 
   outer: for (let attempt = 0; attempt < maxAttempts; attempt++) {
     let usePlainText = false;
     let parseRegenDone = false;
     inner: while (true) {
       try {
-        const text = await generateReasoningText(model, userContent, usePlainText, params.usageLog);
+        const text = await generateReasoningText(model, userContent, usePlainText, params.usageLog, {
+          lowQuota,
+        });
         const parsed = parseReasoningEvaluation(text);
         if (parsed) {
           return parsed;
         }
-        if (!parseRegenDone) {
+        if (!parseRegenDone && !lowQuota) {
           parseRegenDone = true;
           if (process.env.NODE_ENV === "development") {
             console.warn("[evaluateReasoning] parse failed; regenerating once");
@@ -416,10 +523,25 @@ ${studentBlock}
         };
       } catch (err) {
         const msg = errorText(err);
-        if (!usePlainText && isJsonModeUnsupportedError(err)) {
+        if (err instanceof BlockedEvaluationError) {
+          return blockedEvaluationResult();
+        }
+        if (!usePlainText && shouldFallbackJsonToPlain(err)) {
+          if (lowQuota) {
+            console.warn(
+              "[evaluateReasoning] JSON generation failed in low-quota mode; skipping plain retry to save RPM:",
+              msg,
+            );
+            logEvaluateReasoningFailure(err);
+            return {
+              score: 0.5,
+              feedback: "Model request failed; default score applied.",
+              improvements: normalizeImprovementsList(undefined),
+            };
+          }
           usePlainText = true;
           parseRegenDone = false;
-          console.warn("[evaluateReasoning] JSON mode unsupported for this model; falling back to plain text + parser");
+          console.warn("[evaluateReasoning] JSON generation failed; falling back to plain text + parser:", msg);
           continue inner;
         }
         const canRetry = attempt < maxAttempts - 1 && isTransientGeminiError(err);
@@ -432,7 +554,7 @@ ${studentBlock}
           await sleep(delay);
           continue outer;
         }
-        console.error("[evaluateReasoning] Gemini call failed:", msg, err);
+        logEvaluateReasoningFailure(err);
         return {
           score: 0.5,
           feedback: "Model request failed; default score applied.",

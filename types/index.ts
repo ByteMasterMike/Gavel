@@ -31,6 +31,8 @@ export interface PublicCasePayload {
   briefSummary: string;
   parTimeMinutes: number;
   maxPrecedents: number;
+  /** Criminal cases only: REVERSED/AFFIRMED ruling UI when true. */
+  appellateSeat: boolean;
   documents: PublicCaseDocument[];
   precedents: PublicPrecedent[];
 }

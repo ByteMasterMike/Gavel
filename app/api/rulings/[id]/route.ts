@@ -48,6 +48,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
         appellateReversalSummary: caseRow.appellateReversalSummary,
         title: caseRow.title,
         kind: caseRow.kind,
+        appellateSeat: caseRow.appellateSeat,
       },
     });
   } catch (e) {

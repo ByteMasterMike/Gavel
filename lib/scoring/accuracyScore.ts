@@ -14,6 +14,8 @@ export function verdictMatches(player: string, correct: string): boolean {
     NOT_GUILTY: ["ACQUITTED", "NOT_RESPONSIBLE"],
     LIABLE: ["LIABILITY", "RESPONSIBLE"],
     NOT_LIABLE: ["NOT_RESPONSIBLE_CIVIL", "NO_LIABILITY"],
+    REVERSED: ["REVERSE", "VACATED"],
+    AFFIRMED: ["AFFIRM"],
   };
   for (const [canon, alts] of Object.entries(aliases)) {
     if (c === canon && alts.includes(p)) return true;

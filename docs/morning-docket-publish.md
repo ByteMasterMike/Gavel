@@ -1,10 +1,29 @@
-# Morning Docket: assign the daily case (UTC)
+# Morning Docket: daily case (UTC)
 
-The app resolves “today’s” Morning Docket via [`getUtcTodayDailyCaseId()`](../lib/dailyPolicy.ts), which reads a [`DailyChallenge`](../prisma/schema.prisma) row keyed by **UTC calendar date** (`date` @db.Date).
+The app resolves “today’s” Morning Docket via [`resolveDailyCaseIdForUtcDate()`](../lib/dailyPolicy.ts) (and [`getUtcTodayDailyCaseId()`](../lib/dailyPolicy.ts) for callers that only need the id).
 
-Importing a case with [`scripts/import-case.ts`](../scripts/import-case.ts) **does not** set the daily challenge automatically.
+## Default: automatic rotation
 
-## Set or update the row
+If there is **no** [`DailyChallenge`](../prisma/schema.prisma) row for the UTC calendar date, the case is chosen **deterministically** from **all** catalog cases (`Case` rows, ordered by `id`):
+
+- Days are indexed from **`DAILY_DOCKET_EPOCH`** (default `2026-01-01`; override with env).
+- Within each block of **N** days (N = number of cases), every case appears **exactly once** (Fisher–Yates shuffle per block, seeded with **`DAILY_DOCKET_SECRET`** or [`AUTH_SECRET`](../.env.example) / `NEXTAUTH_SECRET`).
+- The first request that needs that day **creates** the `DailyChallenge` row (race-safe). Later requests read the row.
+
+Rotation logic lives in [`lib/dailyRotation.ts`](../lib/dailyRotation.ts).
+
+### Env (optional)
+
+| Variable | Purpose |
+|----------|---------|
+| `DAILY_DOCKET_EPOCH` | `YYYY-MM-DD` UTC anchor for the day index (default `2026-01-01`). |
+| `DAILY_DOCKET_SECRET` | Seed for shuffle; if unset, uses `AUTH_SECRET` or `NEXTAUTH_SECRET`. **Required in production** if auth secrets are unset (throws at runtime). |
+
+Importing a case with [`scripts/import-case.ts`](../scripts/import-case.ts) **does not** insert a `DailyChallenge` row; the new case joins the rotation automatically (N increases from the next resolution).
+
+## Manual override
+
+If a `DailyChallenge` row **already exists** for that UTC date, it **wins** over the auto algorithm. Use this to pin a specific case or fix a mistake.
 
 Use [`scripts/set-daily-challenge.ts`](../scripts/set-daily-challenge.ts):
 
@@ -25,4 +44,4 @@ npm run set-daily-challenge -- 2026-04-01 clxxxxxxxxxxxxxxxx
 
 ## Seed behavior
 
-[`prisma/seed.ts`](../prisma/seed.ts) creates `DailyChallenge` rows for development. Production should set challenges explicitly or via a scheduled job that calls the same upsert logic.
+[`prisma/seed.ts`](../prisma/seed.ts) may create `DailyChallenge` rows for development. Those rows behave like manual overrides for the seeded dates; other dates still use auto rotation if no row exists.

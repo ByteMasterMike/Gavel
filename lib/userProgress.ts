@@ -1,3 +1,4 @@
+import { resolveDailyCaseIdForUtcDate } from "@/lib/dailyPolicy";
 import { prisma } from "@/lib/prisma";
 import {
   localDateDiffDays,
@@ -39,11 +40,8 @@ export async function applyRulingRewards(
     if (!user) return;
 
     const challengeDay = utcChallengeDate();
-    const daily = await tx.dailyChallenge.findUnique({
-      where: { date: challengeDay },
-      select: { caseId: true },
-    });
-    const isMorningDocket = daily?.caseId === caseId;
+    const todaysDailyCaseId = await resolveDailyCaseIdForUtcDate(challengeDay);
+    const isMorningDocket = todaysDailyCaseId === caseId;
 
     let streakDays = user.streakDays;
     let lastMorningDocketLocalDate = user.lastMorningDocketLocalDate;

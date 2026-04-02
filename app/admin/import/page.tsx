@@ -1,6 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 
 export default function AdminImportPage() {
   const [secret, setSecret] = useState("");
@@ -8,7 +12,15 @@ export default function AdminImportPage() {
   const [status, setStatus] = useState<"idle" | "loading" | "done" | "error">("idle");
   const [message, setMessage] = useState("");
 
-  async function submit() {
+  const handleSecretChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setSecret(e.target.value);
+  }, []);
+
+  const handleJsonChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setJsonText(e.target.value);
+  }, []);
+
+  const handleSubmitImport = useCallback(async () => {
     setStatus("loading");
     setMessage("");
     try {
@@ -31,8 +43,9 @@ export default function AdminImportPage() {
       const data = (await res.json()) as { error?: string; caseId?: string; title?: string; issues?: unknown };
       if (!res.ok) {
         setStatus("error");
-        setMessage(data.error ?? `HTTP ${res.status}`);
-        if (data.issues) setMessage((m) => `${m}\n${JSON.stringify(data.issues, null, 2)}`);
+        let msg = data.error ?? `HTTP ${res.status}`;
+        if (data.issues) msg = `${msg}\n${JSON.stringify(data.issues, null, 2)}`;
+        setMessage(msg);
         return;
       }
       setStatus("done");
@@ -41,47 +54,57 @@ export default function AdminImportPage() {
       setStatus("error");
       setMessage(e instanceof Error ? e.message : "Request failed");
     }
-  }
+  }, [jsonText, secret]);
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-10">
-      <h1 className="font-serif text-2xl font-semibold tracking-tight">Import case (JSON)</h1>
+    <main className="mx-auto max-w-3xl px-4 py-10" aria-labelledby="admin-import-title">
+      <h1 id="admin-import-title" className="font-serif text-2xl font-semibold tracking-tight">
+        Import case (JSON)
+      </h1>
       <p className="text-muted-foreground mt-2 text-sm">
         Paste a validated <code className="text-xs">case-import.json</code> body. Requires{" "}
-        <code className="text-xs">ADMIN_IMPORT_SECRET</code> on the server and the same value below.
-        Do not expose this page in production without network restrictions.
+        <code className="text-xs">ADMIN_IMPORT_SECRET</code> on the server and the same value below. Do not expose this
+        page in production without network restrictions.
       </p>
 
-      <label className="mt-6 block text-sm font-medium">Bearer secret</label>
-      <input
-        type="password"
-        autoComplete="off"
-        className="border-input bg-background mt-1 w-full rounded-md border px-3 py-2 text-sm"
-        value={secret}
-        onChange={(e) => setSecret(e.target.value)}
-        placeholder="Same as ADMIN_IMPORT_SECRET"
-      />
+      <div className="mt-6 space-y-2">
+        <Label htmlFor="admin-import-secret">Bearer secret</Label>
+        <Input
+          id="admin-import-secret"
+          type="password"
+          autoComplete="off"
+          value={secret}
+          onChange={handleSecretChange}
+          placeholder="Same as ADMIN_IMPORT_SECRET"
+        />
+      </div>
 
-      <label className="mt-4 block text-sm font-medium">JSON</label>
-      <textarea
-        className="border-input bg-background mt-1 min-h-[320px] w-full rounded-md border px-3 py-2 font-mono text-xs"
-        value={jsonText}
-        onChange={(e) => setJsonText(e.target.value)}
-        placeholder='{ "title": "...", ... }'
-      />
+      <div className="mt-4 space-y-2">
+        <Label htmlFor="admin-import-json">JSON</Label>
+        <Textarea
+          id="admin-import-json"
+          className="min-h-[320px] font-mono text-xs"
+          value={jsonText}
+          onChange={handleJsonChange}
+          placeholder='{ "title": "...", ... }'
+          spellCheck={false}
+        />
+      </div>
 
-      <button
+      <Button
         type="button"
+        className="mt-4"
         disabled={status === "loading" || !secret.trim() || !jsonText.trim()}
-        onClick={() => void submit()}
-        className="bg-primary text-primary-foreground mt-4 rounded-md px-4 py-2 text-sm font-medium disabled:opacity-50"
+        onClick={() => void handleSubmitImport()}
       >
         {status === "loading" ? "Importing…" : "Import case"}
-      </button>
+      </Button>
 
       {message ? (
-        <pre className="bg-muted mt-4 whitespace-pre-wrap rounded-md p-3 text-xs">{message}</pre>
+        <pre className="bg-muted mt-4 whitespace-pre-wrap rounded-md p-3 text-xs" role="status">
+          {message}
+        </pre>
       ) : null}
-    </div>
+    </main>
   );
 }

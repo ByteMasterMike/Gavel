@@ -43,7 +43,7 @@ export default function ResultsPage() {
   const [analysisUnlocked, setAnalysisUnlocked] = useState(false);
 
   useEffect(() => {
-    setAnalysisUnlocked(false);
+    queueMicrotask(() => setAnalysisUnlocked(false));
   }, [rulingId]);
 
   useEffect(() => {

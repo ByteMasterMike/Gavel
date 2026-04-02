@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import Link from "next/link";
+import { useCallback, useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { JudicialShell } from "@/components/shell/JudicialShell";
 import { AppSidebarHome } from "@/components/shell/AppSidebar";
@@ -136,7 +137,7 @@ export default function HallPage() {
 
   useEffect(() => {
     if (!categoryKey) {
-      setCategoryBoard(null);
+      queueMicrotask(() => setCategoryBoard(null));
       return;
     }
     let cancelled = false;
@@ -150,15 +151,25 @@ export default function HallPage() {
     };
   }, [categoryKey]);
 
+  const handleCareerTierSelect = useCallback((tier: number) => {
+    setCareerTier(tier);
+  }, []);
+
+  const handleCategorySelect = useCallback((key: string) => {
+    setCategoryKey(key);
+  }, []);
+
   const rising = board?.entries?.slice(0, 8) ?? [];
   const seats = supreme?.seats ?? [];
 
   const main = (
-    <div className="px-4 py-8 md:px-8 lg:px-10">
+    <main className="px-4 py-8 md:px-8 lg:px-10" aria-labelledby="hall-page-title">
       <div className="mx-auto max-w-6xl space-y-10">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.25em] text-primary">Official register</p>
-          <h1 className="mt-2 font-heading text-3xl font-semibold md:text-4xl">The Supreme 9 Hall</h1>
+          <h1 id="hall-page-title" className="mt-2 font-heading text-3xl font-semibold md:text-4xl">
+            The Supreme 9 Hall
+          </h1>
           <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
             Ceremonial portraits below are illustrative. Live boards pull from your Morning Docket (local day),
             career tier standings, practice area totals, and the Tier 5 Supreme 9 snapshot.
@@ -345,7 +356,7 @@ export default function HallPage() {
                     size="sm"
                     variant={careerTier === t ? "default" : "outline"}
                     className="h-8 min-w-9"
-                    onClick={() => setCareerTier(t)}
+                    onClick={() => handleCareerTierSelect(t)}
                   >
                     {t}
                   </Button>
@@ -387,7 +398,7 @@ export default function HallPage() {
                     type="button"
                     size="sm"
                     variant={categoryKey === c ? "default" : "outline"}
-                    onClick={() => setCategoryKey(c)}
+                    onClick={() => handleCategorySelect(c)}
                   >
                     {c}
                   </Button>
@@ -417,12 +428,15 @@ export default function HallPage() {
         </Card>
 
         <div className="flex flex-wrap gap-3">
-          <a href="/" className="inline-flex h-10 items-center justify-center rounded-md border border-primary/40 px-4 text-sm font-medium hover:bg-muted/50">
+          <Link
+            href="/"
+            className="inline-flex h-10 items-center justify-center rounded-md border border-primary/40 px-4 text-sm font-medium hover:bg-muted/50"
+          >
             Return to docket
-          </a>
+          </Link>
         </div>
       </div>
-    </div>
+    </main>
   );
 
   return <JudicialShell sidebar={<AppSidebarHome active="chambers" />}>{main}</JudicialShell>;

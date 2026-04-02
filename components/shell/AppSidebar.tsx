@@ -51,8 +51,9 @@ function SovereignNavLink({
           : "border-l-4 border-transparent text-[#d1c5b4]/60 hover:bg-[#201f1f] hover:text-[#d1c5b4]",
         className,
       )}
+      aria-current={active ? "page" : undefined}
     >
-      <Icon className="size-[22px] shrink-0" />
+      <Icon className="size-[22px] shrink-0" aria-hidden />
       {children}
     </Link>
   );
@@ -86,13 +87,13 @@ function SidebarNavItem({
   );
   if (onClick) {
     return (
-      <button type="button" className={cls} onClick={onClick}>
+      <button type="button" className={cls} onClick={onClick} aria-current={active ? "true" : undefined}>
         {inner}
       </button>
     );
   }
   return (
-    <Link href={href!} className={cls}>
+    <Link href={href!} className={cls} aria-current={active ? "page" : undefined}>
       {inner}
     </Link>
   );

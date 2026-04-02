@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useSession, signIn, signOut } from "next-auth/react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Bell, Gavel, Moon, Scale, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -19,7 +19,23 @@ type MeHeader = {
 function ThemeToggleButton({ className }: { className?: string }) {
   const { setTheme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  // Hydration guard: resolvedTheme is undefined on server; avoid icon mismatch.
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional one-time mount flag
   useEffect(() => setMounted(true), []);
+
+  const handleToggleTheme = useCallback(() => {
+    setTheme(resolvedTheme === "dark" ? "light" : "dark");
+  }, [resolvedTheme, setTheme]);
+
+  const handleToggleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        handleToggleTheme();
+      }
+    },
+    [handleToggleTheme],
+  );
 
   return (
     <Button
@@ -28,14 +44,15 @@ function ThemeToggleButton({ className }: { className?: string }) {
       size="icon"
       className={className}
       aria-label="Toggle light or dark theme"
-      onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
+      onClick={handleToggleTheme}
+      onKeyDown={handleToggleKeyDown}
     >
       {!mounted ? (
         <span className="inline-block size-4 shrink-0" aria-hidden />
       ) : resolvedTheme === "dark" ? (
-        <Sun className="size-4" />
+        <Sun className="size-4" aria-hidden />
       ) : (
-        <Moon className="size-4" />
+        <Moon className="size-4" aria-hidden />
       )}
     </Button>
   );
@@ -57,6 +74,7 @@ function NavLink({
         "text-xs font-medium uppercase tracking-widest transition-colors",
         active ? "text-primary underline decoration-primary underline-offset-4" : "text-muted-foreground hover:text-foreground",
       )}
+      aria-current={active ? "page" : undefined}
     >
       {children}
     </Link>
@@ -66,7 +84,6 @@ function NavLink({
 export function AppHeader({ variant = "default" }: { variant?: "default" | "sovereign" }) {
   const pathname = usePathname();
   const { data: session, status } = useSession();
-  const { setTheme, resolvedTheme } = useTheme();
   const [me, setMe] = useState<MeHeader | null>(null);
 
   useEffect(() => {
@@ -89,6 +106,18 @@ export function AppHeader({ variant = "default" }: { variant?: "default" | "sove
   const onHall = pathname === "/hall";
   const onClassroom = pathname.startsWith("/classroom");
   const onHome = pathname === "/";
+
+  const handleSignOut = useCallback(() => {
+    void signOut({ callbackUrl: "/" });
+  }, []);
+
+  const handleSignInDev = useCallback(() => {
+    void signIn("dev", { callbackUrl: pathname || "/" });
+  }, [pathname]);
+
+  const handleSignInGoogle = useCallback(() => {
+    void signIn("google", { callbackUrl: pathname || "/" });
+  }, [pathname]);
 
   if (variant === "sovereign") {
     return (
@@ -127,8 +156,9 @@ export function AppHeader({ variant = "default" }: { variant?: "default" | "sove
               "size-10 rounded-lg text-[#e9c176] hover:bg-[#393939]",
             )}
             aria-label="The Hall"
+            aria-current={onHall ? "page" : undefined}
           >
-            <Gavel className="size-5" />
+            <Gavel className="size-5" aria-hidden />
           </Link>
           <Button
             type="button"
@@ -137,7 +167,7 @@ export function AppHeader({ variant = "default" }: { variant?: "default" | "sove
             className="relative size-10 rounded-lg text-[#e9c176] hover:bg-[#393939]"
             aria-label="Notifications (coming soon)"
           >
-            <Bell className="size-5" />
+            <Bell className="size-5" aria-hidden />
             <span className="absolute right-2 top-2 size-2 rounded-full bg-[#ffb3ac]" aria-hidden />
           </Button>
           <ThemeToggleButton className="size-9 text-[#d1c5b4] hover:bg-[#393939] hover:text-[#e9c176]" />
@@ -148,7 +178,7 @@ export function AppHeader({ variant = "default" }: { variant?: "default" | "sove
               {session.user.image ? (
                 <button
                   type="button"
-                  onClick={() => signOut({ callbackUrl: "/" })}
+                  onClick={handleSignOut}
                   className="size-10 overflow-hidden rounded-lg border border-[#e9c176]/20 bg-[#201f1f] transition-opacity hover:opacity-90"
                   aria-label="Sign out"
                 >
@@ -167,7 +197,7 @@ export function AppHeader({ variant = "default" }: { variant?: "default" | "sove
                   variant="ghost"
                   size="sm"
                   className="text-[#d1c5b4] hover:text-[#e9c176]"
-                  onClick={() => signOut({ callbackUrl: "/" })}
+                  onClick={handleSignOut}
                 >
                   Sign out
                 </Button>
@@ -181,12 +211,12 @@ export function AppHeader({ variant = "default" }: { variant?: "default" | "sove
                   size="sm"
                   variant="outline"
                   className="border-[#4e4639] text-[#e5e2e1]"
-                  onClick={() => signIn("dev", { callbackUrl: pathname || "/" })}
+                  onClick={handleSignInDev}
                 >
                   Dev
                 </Button>
               )}
-              <Button type="button" size="sm" onClick={() => signIn("google", { callbackUrl: pathname || "/" })}>
+              <Button type="button" size="sm" onClick={handleSignInGoogle}>
                 Sign in
               </Button>
             </div>
@@ -231,18 +261,18 @@ export function AppHeader({ variant = "default" }: { variant?: "default" | "sove
             >
               <Scale className="size-4 text-primary" />
             </div>
-            <Button type="button" variant="ghost" size="sm" className="hidden lg:inline-flex" onClick={() => signOut({ callbackUrl: "/" })}>
+            <Button type="button" variant="ghost" size="sm" className="hidden lg:inline-flex" onClick={handleSignOut}>
               Sign out
             </Button>
           </div>
         ) : (
           <div className="flex gap-2">
             {process.env.NODE_ENV === "development" && (
-              <Button type="button" size="sm" variant="outline" onClick={() => signIn("dev", { callbackUrl: pathname || "/" })}>
+              <Button type="button" size="sm" variant="outline" onClick={handleSignInDev}>
                 Dev
               </Button>
             )}
-            <Button type="button" size="sm" onClick={() => signIn("google", { callbackUrl: pathname || "/" })}>
+            <Button type="button" size="sm" onClick={handleSignInGoogle}>
               Sign in
             </Button>
           </div>

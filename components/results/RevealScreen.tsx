@@ -67,15 +67,19 @@ export function RevealScreen({ player, reveal, prescientJustice }: Props) {
         </p>
       </Stagger>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <section aria-labelledby="reveal-outcomes-heading">
+        <h2 id="reveal-outcomes-heading" className="sr-only">
+          Your decision and scored outcome
+        </h2>
+        <div className="grid gap-6 lg:grid-cols-2">
         <Stagger delayMs={80}>
         <Card className="border-primary/35 bg-gradient-to-br from-card via-[color-mix(in_oklab,var(--judicial-panel)_35%,transparent)] to-accent/25">
           <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
+            <CardTitle id="reveal-player-card-title" className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
               Your decision
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2 text-sm">
+          <CardContent className="space-y-2 text-sm" aria-labelledby="reveal-player-card-title">
             <p>
               <span className="text-muted-foreground">
                 {reveal.kind === "CRIMINAL" && reveal.appellateSeat
@@ -103,13 +107,13 @@ export function RevealScreen({ player, reveal, prescientJustice }: Props) {
 
         <Card className="border-primary/30 bg-card/90">
           <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+            <CardTitle id="reveal-correct-card-title" className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
               {reveal.kind === "CRIMINAL" && reveal.appellateSeat
                 ? "Correct disposition (scored)"
                 : "Trial outcome (scored)"}
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3 text-sm">
+          <CardContent className="space-y-3 text-sm" aria-labelledby="reveal-correct-card-title">
             <p>
               <span className="text-muted-foreground">
                 {reveal.kind === "CRIMINAL" && reveal.appellateSeat ? "Disposition: " : "Outcome: "}
@@ -122,7 +126,8 @@ export function RevealScreen({ player, reveal, prescientJustice }: Props) {
           </CardContent>
         </Card>
         </Stagger>
-      </div>
+        </div>
+      </section>
 
       {reveal.isOverturned && reveal.appellateReversalSummary && (
         <Stagger delayMs={280}>

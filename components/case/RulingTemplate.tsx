@@ -91,8 +91,9 @@ export function RulingTemplate({ kind, appellateSeat = false, className }: Props
           type="number"
           step="any"
           placeholder="e.g., total fine or damages in dollars"
+          aria-describedby="sentence-numeric-hint"
         />
-        <p className="text-xs text-muted-foreground">
+        <p id="sentence-numeric-hint" className="text-xs text-muted-foreground">
           Used for range scoring when applicable (fines, restitution, damages).
         </p>
       </div>

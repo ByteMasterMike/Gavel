@@ -1,12 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { formatDateInUserTimeZone } from "@/lib/careerTier";
-import { localDayBounds, resolveLeaderboardTimeZone } from "@/lib/dailyPolicy";
-
-function utcDateOnly(d: Date): Date {
-  const x = new Date(d);
-  x.setUTCHours(0, 0, 0, 0);
-  return x;
-}
+import { localDayBounds, resolveDailyCaseIdForUtcDate, resolveLeaderboardTimeZone } from "@/lib/dailyPolicy";
+import { utcCalendarDateOnly } from "@/lib/dailyRotation";
 
 /**
  * If this ruling is on the UTC-dated Morning Docket for `submittedAt` and the user's best score that local day is top 10, record Morning Gavel.
@@ -16,11 +11,8 @@ export async function tryAwardMorningGavelBadge(input: {
   caseId: string;
   submittedAt: Date;
 }): Promise<void> {
-  const challenge = await prisma.dailyChallenge.findUnique({
-    where: { date: utcDateOnly(input.submittedAt) },
-    select: { caseId: true },
-  });
-  if (!challenge || challenge.caseId !== input.caseId) return;
+  const expectedCaseId = await resolveDailyCaseIdForUtcDate(utcCalendarDateOnly(input.submittedAt));
+  if (!expectedCaseId || expectedCaseId !== input.caseId) return;
 
   const user = await prisma.user.findUnique({
     where: { id: input.userId },

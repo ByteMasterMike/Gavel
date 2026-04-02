@@ -1,8 +1,15 @@
 /**
  * Daily docket policy: UTC date keys `DailyChallenge`; leaderboard uses viewer local calendar day.
  */
-import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 import { formatDateInUserTimeZone, utcChallengeDate } from "@/lib/careerTier";
+import {
+  computeAutoDailyCaseIdForDate,
+  getDailyRotationEpochYmd,
+  getDailyRotationSecret,
+  utcCalendarDateOnly,
+} from "@/lib/dailyRotation";
+import { prisma } from "@/lib/prisma";
 
 export const DEFAULT_LEADERBOARD_TIMEZONE = "America/New_York";
 
@@ -49,13 +56,74 @@ function zonedMidnightUtc(timeZone: string, ymd: string): Date {
   return best ?? new Date(pivot);
 }
 
-/** Case id for today's UTC-keyed `DailyChallenge` row (global docket). */
-export async function getUtcTodayDailyCaseId(): Promise<string | null> {
-  const daily = await prisma.dailyChallenge.findUnique({
-    where: { date: utcChallengeDate() },
+async function sortedCatalogCaseIds(): Promise<string[]> {
+  const rows = await prisma.case.findMany({
+    select: { id: true },
+    orderBy: { id: "asc" },
+  });
+  return rows.map((r) => r.id);
+}
+
+function autoCaseIdForUtcDay(day: Date, sortedIds: string[]): string | null {
+  return computeAutoDailyCaseIdForDate(
+    day,
+    sortedIds,
+    getDailyRotationSecret(),
+    getDailyRotationEpochYmd(),
+  );
+}
+
+/**
+ * Morning Docket case id for a UTC calendar day without persisting an auto row.
+ * Use for read-heavy paths (e.g. expired-daily checks).
+ */
+export async function peekDailyCaseIdForUtcDate(date: Date): Promise<string | null> {
+  const day = utcCalendarDateOnly(date);
+  const existing = await prisma.dailyChallenge.findUnique({
+    where: { date: day },
     select: { caseId: true },
   });
-  return daily?.caseId ?? null;
+  if (existing) return existing.caseId;
+  const sortedIds = await sortedCatalogCaseIds();
+  return autoCaseIdForUtcDay(day, sortedIds);
+}
+
+/**
+ * Resolves the Morning Docket case for a UTC calendar day: existing `DailyChallenge` row wins;
+ * otherwise computes rotation, persists it, and returns the case id.
+ */
+export async function resolveDailyCaseIdForUtcDate(date: Date): Promise<string | null> {
+  const day = utcCalendarDateOnly(date);
+  const existing = await prisma.dailyChallenge.findUnique({
+    where: { date: day },
+    select: { caseId: true },
+  });
+  if (existing) return existing.caseId;
+
+  const sortedIds = await sortedCatalogCaseIds();
+  const caseId = autoCaseIdForUtcDay(day, sortedIds);
+  if (!caseId) return null;
+
+  try {
+    await prisma.dailyChallenge.create({
+      data: { date: day, caseId },
+    });
+    return caseId;
+  } catch (e) {
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
+      const row = await prisma.dailyChallenge.findUnique({
+        where: { date: day },
+        select: { caseId: true },
+      });
+      return row?.caseId ?? caseId;
+    }
+    throw e;
+  }
+}
+
+/** Case id for today's UTC-keyed Morning Docket (manual row or auto rotation). */
+export async function getUtcTodayDailyCaseId(): Promise<string | null> {
+  return resolveDailyCaseIdForUtcDate(utcChallengeDate());
 }
 
 /**
@@ -64,13 +132,10 @@ export async function getUtcTodayDailyCaseId(): Promise<string | null> {
  */
 export async function isExpiredPastDailyCase(caseId: string): Promise<boolean> {
   const today = utcChallengeDate();
-  const todaysRow = await prisma.dailyChallenge.findUnique({
-    where: { date: today },
-    select: { caseId: true },
-  });
-  if (todaysRow?.caseId === caseId) return false;
+  const todaysCaseId = await peekDailyCaseIdForUtcDate(today);
+  if (todaysCaseId === caseId) return false;
   const historical = await prisma.dailyChallenge.findFirst({
-    where: { caseId },
+    where: { caseId, date: { lt: today } },
     select: { date: true },
   });
   return historical != null;

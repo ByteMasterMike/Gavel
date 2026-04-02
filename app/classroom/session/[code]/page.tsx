@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useSession, signIn } from "next-auth/react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { JudicialShell } from "@/components/shell/JudicialShell";
 import { AppSidebarHome } from "@/components/shell/AppSidebar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -56,7 +56,7 @@ export default function ClassroomJoinPage() {
     };
   }, [code]);
 
-  const join = async () => {
+  const join = useCallback(async () => {
     if (!info || !session?.user) return;
     setBusy(true);
     try {
@@ -77,9 +77,9 @@ export default function ClassroomJoinPage() {
     } finally {
       setBusy(false);
     }
-  };
+  }, [anon, anonName, info, session?.user]);
 
-  const submitDissent = async () => {
+  const submitDissent = useCallback(async () => {
     if (!info || dissent.trim().length < 4) return;
     setBusy(true);
     try {
@@ -98,12 +98,26 @@ export default function ClassroomJoinPage() {
     } finally {
       setBusy(false);
     }
-  };
+  }, [dissent, info]);
+
+  const handleSignInDev = useCallback(() => {
+    void signIn("dev", { callbackUrl: `/classroom/session/${code}` });
+  }, [code]);
+
+  const handleSignInGoogle = useCallback(() => {
+    void signIn("google", { callbackUrl: `/classroom/session/${code}` });
+  }, [code]);
+
+  const handleBackToClassroom = useCallback(() => {
+    router.push("/classroom");
+  }, [router]);
 
   if (status === "loading") {
     return (
       <JudicialShell sidebar={<AppSidebarHome active="classroom" />}>
-        <p className="p-8 text-center text-muted-foreground">Loading…</p>
+        <p className="p-8 text-center text-muted-foreground" role="status">
+          Loading…
+        </p>
       </JudicialShell>
     );
   }
@@ -118,15 +132,11 @@ export default function ClassroomJoinPage() {
             </CardHeader>
             <CardContent className="flex flex-col gap-2">
               {process.env.NODE_ENV === "development" && (
-                <Button type="button" onClick={() => signIn("dev", { callbackUrl: `/classroom/session/${code}` })}>
+                <Button type="button" onClick={handleSignInDev}>
                   Dev sign-in
                 </Button>
               )}
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => signIn("google", { callbackUrl: `/classroom/session/${code}` })}
-              >
+              <Button type="button" variant="secondary" onClick={handleSignInGoogle}>
                 Google
               </Button>
             </CardContent>
@@ -141,7 +151,7 @@ export default function ClassroomJoinPage() {
       <JudicialShell sidebar={<AppSidebarHome active="classroom" />}>
         <div className="mx-auto max-w-md space-y-4 p-8">
           <p className="text-destructive">{loadErr}</p>
-          <Button type="button" variant="outline" onClick={() => router.push("/classroom")}>
+          <Button type="button" variant="outline" onClick={handleBackToClassroom}>
             Back
           </Button>
         </div>
@@ -161,10 +171,12 @@ export default function ClassroomJoinPage() {
 
   return (
     <JudicialShell sidebar={<AppSidebarHome active="classroom" />}>
-      <div className="mx-auto max-w-lg space-y-6 px-4 py-8">
+      <main className="mx-auto max-w-lg space-y-6 px-4 py-8" aria-labelledby="session-room-title">
         <div>
           <p className="text-xs uppercase tracking-wider text-primary">Room {info.roomCode}</p>
-          <h1 className="mt-1 font-heading text-2xl font-semibold">{info.title}</h1>
+          <h1 id="session-room-title" className="mt-1 font-heading text-2xl font-semibold">
+            {info.title}
+          </h1>
           <p className="mt-2 text-sm text-muted-foreground">
             Case: <span className="text-foreground">{info.caseTitle}</span> · {info.caseCategory} · Tier{" "}
             {info.caseTier}
@@ -243,10 +255,10 @@ export default function ClassroomJoinPage() {
           </Card>
         )}
 
-        <Button type="button" variant="ghost" onClick={() => router.push("/classroom")}>
+        <Button type="button" variant="ghost" onClick={handleBackToClassroom}>
           Classroom home
         </Button>
-      </div>
+      </main>
     </JudicialShell>
   );
 }

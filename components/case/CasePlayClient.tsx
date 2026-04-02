@@ -1,11 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useSession, signIn } from "next-auth/react";
 import { useCallback, useEffect, useState } from "react";
 import { EvidenceLocker } from "./EvidenceLocker";
+import { getVisibleRulingForm, LegalPadPanel } from "./LegalPadPanel";
 import { LawLibrary } from "./LawLibrary";
-import { RulingTemplate } from "./RulingTemplate";
 import { useCaseSession } from "./CaseSessionContext";
 import type { GamePhase, PublicCasePayload } from "@/types";
 import { GAME_PHASES } from "@/types";
@@ -15,7 +16,6 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { JudicialShell } from "@/components/shell/JudicialShell";
 import { AppSidebarHome, AppSidebarTrial } from "@/components/shell/AppSidebar";
-import Link from "next/link";
 
 const PHASE_LABEL: Record<GamePhase, string> = {
   briefing: "Briefing room",
@@ -23,86 +23,6 @@ const PHASE_LABEL: Record<GamePhase, string> = {
   library: "Law library",
   ruling: "Your ruling",
 };
-
-/** When mobile + desktop legal pads both mount, only one is visible; submit must use that form. */
-function getVisibleRulingForm(doc: Document): HTMLFormElement | null {
-  const forms = doc.querySelectorAll<HTMLFormElement>("form[data-ruling-form]");
-  for (const form of forms) {
-    if (typeof form.checkVisibility === "function") {
-      try {
-        if (form.checkVisibility({ checkOpacity: true, checkVisibilityCSS: true })) return form;
-      } catch {
-        /* ignore */
-      }
-    }
-    if (form.offsetParent !== null) return form;
-    const rects = form.getClientRects();
-    if (rects.length > 0 && rects[0]!.width > 0 && rects[0]!.height > 0) return form;
-  }
-  return forms[0] ?? null;
-}
-
-function LegalPadPanel({
-  kind,
-  appellateSeat,
-  phase,
-  submitting,
-  onSubmit,
-  onBack,
-  layout = "rail",
-}: {
-  kind: PublicCasePayload["kind"];
-  appellateSeat: boolean;
-  phase: GamePhase;
-  submitting: boolean;
-  onSubmit: () => void;
-  onBack: () => void;
-  /** `center` = main column (ruling); `rail` = narrow right sidebar. */
-  layout?: "rail" | "center";
-}) {
-  if (phase !== "ruling") {
-    return (
-      <div
-        className={cn(
-          "flex h-full flex-col border-border bg-card/95 p-5 shadow-inner",
-          layout === "rail" && "xl:border-l",
-        )}
-      >
-        <div className="mb-4">
-          <h2 className="font-heading text-lg text-foreground">Virtual Legal Pad</h2>
-          <p className="text-xs uppercase tracking-wide text-muted-foreground">Drafting preliminary verdict</p>
-        </div>
-        <p className="text-sm text-muted-foreground">
-          Complete evidence, library, and briefing steps. Your ruling draft unlocks in the final phase.
-        </p>
-        <div className="mt-6 rounded-lg border border-dashed border-primary/30 bg-muted/20 p-4 text-center text-xs text-muted-foreground">
-          Locked until &ldquo;Prior rulings&rdquo; phase
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex h-full min-h-0 flex-col gap-4 overflow-y-auto border-border bg-card/95 p-5 xl:border-l">
-      <div>
-        <h2 className="font-heading text-lg text-foreground">Virtual Legal Pad</h2>
-        <p className="text-xs uppercase tracking-wide text-muted-foreground">Drafting preliminary verdict</p>
-      </div>
-      <RulingTemplate kind={kind} appellateSeat={appellateSeat} className="max-w-none space-y-5" />
-      <div className="mt-auto flex flex-col gap-2 border-t border-border pt-4">
-        <Button type="button" className="w-full" disabled={submitting} onClick={() => void onSubmit()}>
-          {submitting ? "Submitting…" : "Finalize decision"}
-        </Button>
-        <Button type="button" variant="ghost" className="w-full text-muted-foreground" disabled>
-          Save draft
-        </Button>
-        <Button type="button" variant="ghost" size="sm" onClick={onBack}>
-          Back to library
-        </Button>
-      </div>
-    </div>
-  );
-}
 
 export function CasePlayClient({
   caseId,
@@ -214,9 +134,30 @@ export function CasePlayClient({
     }
   }, [router, state, classSessionId]);
 
+  const handleNavigateTrial = useCallback(
+    (p: GamePhase) => {
+      const phaseIndex = GAME_PHASES.indexOf(state.phase);
+      const ti = GAME_PHASES.indexOf(p);
+      if (ti <= phaseIndex) setPhase(p);
+    },
+    [setPhase, state.phase],
+  );
+
+  const handleBackToLibrary = useCallback(() => {
+    setPhase("library");
+  }, [setPhase]);
+
+  const handleSignInDev = useCallback(() => {
+    void signIn("dev", { callbackUrl: `/case/${caseId}` });
+  }, [caseId]);
+
+  const handleSignInGoogle = useCallback(() => {
+    void signIn("google", { callbackUrl: `/case/${caseId}` });
+  }, [caseId]);
+
   if (status === "loading") {
     return (
-      <div className="flex min-h-[40vh] items-center justify-center text-muted-foreground">
+      <div className="flex min-h-[40vh] items-center justify-center text-muted-foreground" role="status">
         Checking session…
       </div>
     );
@@ -232,11 +173,11 @@ export function CasePlayClient({
             </CardHeader>
             <CardContent className="flex flex-col gap-2">
               {process.env.NODE_ENV === "development" && (
-                <Button type="button" onClick={() => signIn("dev", { callbackUrl: `/case/${caseId}` })}>
+                <Button type="button" onClick={handleSignInDev}>
                   Dev sign-in
                 </Button>
               )}
-              <Button type="button" variant="secondary" onClick={() => signIn("google", { callbackUrl: `/case/${caseId}` })}>
+              <Button type="button" variant="secondary" onClick={handleSignInGoogle}>
                 Continue with Google
               </Button>
             </CardContent>
@@ -263,10 +204,8 @@ export function CasePlayClient({
 
   if (!state.caseData) {
     return (
-      <JudicialShell
-        sidebar={<AppSidebarTrial phase="briefing" onPhaseNavigate={() => {}} />}
-      >
-        <div className="flex min-h-[40vh] items-center justify-center text-muted-foreground">
+      <JudicialShell sidebar={<AppSidebarTrial phase="briefing" onPhaseNavigate={() => {}} />}>
+        <div className="flex min-h-[40vh] items-center justify-center text-muted-foreground" role="status">
           Loading case file…
         </div>
       </JudicialShell>
@@ -275,11 +214,6 @@ export function CasePlayClient({
 
   const c = state.caseData;
   const phaseIndex = GAME_PHASES.indexOf(state.phase);
-
-  const navigateTrial = (p: GamePhase) => {
-    const ti = GAME_PHASES.indexOf(p);
-    if (ti <= phaseIndex) setPhase(p);
-  };
 
   const center = (
     <div
@@ -317,7 +251,9 @@ export function CasePlayClient({
               size="sm"
               variant={p === state.phase ? "default" : "outline"}
               className={cn(i > phaseIndex && "opacity-60")}
-              onClick={() => i <= phaseIndex && setPhase(p)}
+              onClick={() => {
+                if (i <= phaseIndex) setPhase(p);
+              }}
               disabled={i > phaseIndex}
             >
               {i + 1}. {PHASE_LABEL[p]}
@@ -327,58 +263,58 @@ export function CasePlayClient({
       </div>
 
       {state.phase !== "ruling" && (
-      <div
-        className={cn(
-          "rounded-xl border border-primary/25 bg-gradient-to-b from-card to-[color-mix(in_oklab,var(--judicial-panel)_25%,var(--card))] p-4 shadow-sm md:p-6",
-        )}
-      >
-        {state.phase === "briefing" && (
-          <div className="space-y-4">
-            <h2 className="font-heading text-xl text-foreground">Case overview</h2>
-            <p className="text-sm leading-relaxed text-foreground/90">{c.briefSummary}</p>
-            <p className="text-sm text-muted-foreground">
-              Par time: <span className="font-medium text-foreground">{c.parTimeMinutes} min</span> (speed is a small
-              style factor).
-            </p>
-            <Button type="button" onClick={() => nextPhase()}>
-              Enter evidence locker
-            </Button>
-          </div>
-        )}
-
-        {state.phase === "evidence" && (
-          <div className="space-y-4">
-            <EvidenceLocker />
-            <div className="flex justify-end gap-2">
-              <Button type="button" variant="ghost" onClick={() => setPhase("briefing")}>
-                Back
-              </Button>
+        <div
+          className={cn(
+            "rounded-xl border border-primary/25 bg-gradient-to-b from-card to-[color-mix(in_oklab,var(--judicial-panel)_25%,var(--card))] p-4 shadow-sm md:p-6",
+          )}
+        >
+          {state.phase === "briefing" && (
+            <div className="space-y-4">
+              <h2 className="font-heading text-xl text-foreground">Case overview</h2>
+              <p className="text-sm leading-relaxed text-foreground/90">{c.briefSummary}</p>
+              <p className="text-sm text-muted-foreground">
+                Par time: <span className="font-medium text-foreground">{c.parTimeMinutes} min</span> (speed is a small
+                style factor).
+              </p>
               <Button type="button" onClick={() => nextPhase()}>
-                Continue to law library
+                Enter evidence locker
               </Button>
             </div>
-          </div>
-        )}
+          )}
 
-        {state.phase === "library" && (
-          <div className="space-y-4">
-            <LawLibrary
-              caseId={c.id}
-              precedents={c.precedents}
-              kind={c.kind}
-              classSessionId={classSessionId}
-            />
-            <div className="flex justify-end gap-2">
-              <Button type="button" variant="ghost" onClick={() => setPhase("evidence")}>
-                Back
-              </Button>
-              <Button type="button" onClick={() => nextPhase()}>
-                Draft ruling
-              </Button>
+          {state.phase === "evidence" && (
+            <div className="space-y-4">
+              <EvidenceLocker />
+              <div className="flex justify-end gap-2">
+                <Button type="button" variant="ghost" onClick={() => setPhase("briefing")}>
+                  Back
+                </Button>
+                <Button type="button" onClick={() => nextPhase()}>
+                  Continue to law library
+                </Button>
+              </div>
             </div>
-          </div>
-        )}
-      </div>
+          )}
+
+          {state.phase === "library" && (
+            <div className="space-y-4">
+              <LawLibrary
+                caseId={c.id}
+                precedents={c.precedents}
+                kind={c.kind}
+                classSessionId={classSessionId}
+              />
+              <div className="flex justify-end gap-2">
+                <Button type="button" variant="ghost" onClick={() => setPhase("evidence")}>
+                  Back
+                </Button>
+                <Button type="button" onClick={() => nextPhase()}>
+                  Draft ruling
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
       )}
 
       {state.phase === "ruling" && (
@@ -394,7 +330,7 @@ export function CasePlayClient({
               phase={state.phase}
               submitting={submitting}
               onSubmit={submitRuling}
-              onBack={() => setPhase("library")}
+              onBack={handleBackToLibrary}
             />
           </div>
         </div>
@@ -411,14 +347,14 @@ export function CasePlayClient({
           phase={state.phase}
           submitting={submitting}
           onSubmit={submitRuling}
-          onBack={() => setPhase("library")}
+          onBack={handleBackToLibrary}
         />
       </div>
     );
 
   return (
     <JudicialShell
-      sidebar={<AppSidebarTrial phase={state.phase} onPhaseNavigate={navigateTrial} />}
+      sidebar={<AppSidebarTrial phase={state.phase} onPhaseNavigate={handleNavigateTrial} />}
       rightRail={rightRail}
     >
       {center}

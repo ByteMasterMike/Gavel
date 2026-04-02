@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useSession, signIn } from "next-auth/react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { JudicialShell } from "@/components/shell/JudicialShell";
 import { AppSidebarHome } from "@/components/shell/AppSidebar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -40,7 +40,7 @@ export default function ClassroomHubPage() {
     };
   }, [session?.user]);
 
-  const createSession = async () => {
+  const handleCreateSession = useCallback(async () => {
     setErr(null);
     setBusy(true);
     try {
@@ -58,21 +58,43 @@ export default function ClassroomHubPage() {
     } finally {
       setBusy(false);
     }
-  };
+  }, [caseId, title, router]);
 
-  const goJoin = () => {
+  const handleJoinWithCode = useCallback(() => {
     const c = codeInput.trim().toUpperCase();
     if (c.length < 4) {
       setErr("Enter a room code");
       return;
     }
     router.push(`/classroom/session/${c}`);
-  };
+  }, [codeInput, router]);
+
+  const handleSignInDev = useCallback(() => {
+    void signIn("dev", { callbackUrl: "/classroom" });
+  }, []);
+
+  const handleSignInGoogle = useCallback(() => {
+    void signIn("google", { callbackUrl: "/classroom" });
+  }, []);
+
+  const handleCaseChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+    setCaseId(e.target.value);
+  }, []);
+
+  const handleTitleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setTitle(e.target.value);
+  }, []);
+
+  const handleCodeChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setCodeInput(e.target.value.toUpperCase());
+  }, []);
 
   if (status === "loading") {
     return (
       <JudicialShell sidebar={<AppSidebarHome active="classroom" />}>
-        <p className="p-8 text-center text-muted-foreground">Loading…</p>
+        <p className="p-8 text-center text-muted-foreground" role="status">
+          Loading…
+        </p>
       </JudicialShell>
     );
   }
@@ -88,11 +110,11 @@ export default function ClassroomHubPage() {
             </CardHeader>
             <CardContent className="flex flex-col gap-2">
               {process.env.NODE_ENV === "development" && (
-                <Button type="button" onClick={() => signIn("dev", { callbackUrl: "/classroom" })}>
+                <Button type="button" onClick={handleSignInDev}>
                   Dev sign-in
                 </Button>
               )}
-              <Button type="button" variant="secondary" onClick={() => signIn("google", { callbackUrl: "/classroom" })}>
+              <Button type="button" variant="secondary" onClick={handleSignInGoogle}>
                 Continue with Google
               </Button>
             </CardContent>
@@ -104,10 +126,12 @@ export default function ClassroomHubPage() {
 
   return (
     <JudicialShell sidebar={<AppSidebarHome active="classroom" />}>
-      <div className="mx-auto max-w-3xl space-y-8 px-4 py-8 md:px-8">
+      <main className="mx-auto max-w-3xl space-y-8 px-4 py-8 md:px-8" aria-labelledby="classroom-page-title">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Classroom mode</p>
-          <h1 className="mt-2 font-heading text-3xl font-semibold md:text-4xl">Host or join a session</h1>
+          <h1 id="classroom-page-title" className="mt-2 font-heading text-3xl font-semibold md:text-4xl">
+            Host or join a session
+          </h1>
           <p className="mt-2 text-sm text-muted-foreground">
             Instructors pick a case and share a room code. Students join, then open the case with the session link so
             rulings attach to your room. The instructor dashboard updates every few seconds (polling).
@@ -115,7 +139,7 @@ export default function ClassroomHubPage() {
         </div>
 
         {err && (
-          <p className="rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          <p className="rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive" role="alert">
             {err}
           </p>
         )}
@@ -123,7 +147,7 @@ export default function ClassroomHubPage() {
         <Card className="border-primary/25 bg-card/90">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 font-heading text-lg">
-              <GraduationCap className="size-5 text-primary" />
+              <GraduationCap className="size-5 text-primary" aria-hidden />
               Instructor · new session
             </CardTitle>
             <CardDescription>Creates a room code and live dashboard for this case.</CardDescription>
@@ -135,7 +159,7 @@ export default function ClassroomHubPage() {
                 id="case-pick"
                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
                 value={caseId}
-                onChange={(e) => setCaseId(e.target.value)}
+                onChange={handleCaseChange}
               >
                 {cases.map((c) => (
                   <option key={c.id} value={c.id}>
@@ -146,9 +170,9 @@ export default function ClassroomHubPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="sess-title">Session title</Label>
-              <Input id="sess-title" value={title} onChange={(e) => setTitle(e.target.value)} />
+              <Input id="sess-title" value={title} onChange={handleTitleChange} />
             </div>
-            <Button type="button" disabled={busy || !caseId} onClick={() => void createSession()}>
+            <Button type="button" disabled={busy || !caseId} onClick={() => void handleCreateSession()}>
               {busy ? "Creating…" : "Create session & open dashboard"}
             </Button>
           </CardContent>
@@ -157,7 +181,7 @@ export default function ClassroomHubPage() {
         <Card className="border-border bg-card/80">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 font-heading text-lg">
-              <Hash className="size-5 text-primary" />
+              <Hash className="size-5 text-primary" aria-hidden />
               Student · join with code
             </CardTitle>
             <CardDescription>Enter the six-character code from your instructor.</CardDescription>
@@ -170,11 +194,12 @@ export default function ClassroomHubPage() {
                 className="font-mono uppercase tracking-widest"
                 placeholder="e.g. ABC12D"
                 value={codeInput}
-                onChange={(e) => setCodeInput(e.target.value.toUpperCase())}
+                onChange={handleCodeChange}
                 maxLength={8}
+                autoComplete="off"
               />
             </div>
-            <Button type="button" onClick={goJoin}>
+            <Button type="button" onClick={handleJoinWithCode}>
               Continue
             </Button>
           </CardContent>
@@ -183,7 +208,7 @@ export default function ClassroomHubPage() {
         <Card className="border-muted bg-muted/10">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
-              <BookOpen className="size-4" />
+              <BookOpen className="size-4" aria-hidden />
               .edu verification
             </CardTitle>
             <CardDescription>
@@ -197,7 +222,7 @@ export default function ClassroomHubPage() {
             View hall & leaderboards
           </Link>
         </p>
-      </div>
+      </main>
     </JudicialShell>
   );
 }

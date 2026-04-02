@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import { Trophy } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -119,9 +120,12 @@ export function DailyLeaderboard() {
                 <div className="flex min-w-0 items-center gap-3">
                   <span className="w-8 shrink-0 tabular-nums text-muted-foreground">#{e.rank}</span>
                   {e.image ? (
-                    <img
+                    <Image
                       src={e.image}
                       alt=""
+                      width={32}
+                      height={32}
+                      unoptimized
                       className="size-8 shrink-0 rounded-full object-cover"
                     />
                   ) : (

@@ -64,6 +64,7 @@ export default function InstructorDashboardPage() {
   }, [sessionId]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- load updates dashboard from API; tick drives polling
     void load();
   }, [load, tick]);
 
@@ -72,14 +73,29 @@ export default function InstructorDashboardPage() {
     return () => window.clearInterval(id);
   }, []);
 
-  const patchDissent = async (id: string, statusArg: "APPROVED" | "DECLINED") => {
-    const res = await fetch(`/api/classroom/dissents/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: statusArg }),
-    });
-    if (res.ok) void load();
-  };
+  const patchDissent = useCallback(
+    async (id: string, statusArg: "APPROVED" | "DECLINED") => {
+      const res = await fetch(`/api/classroom/dissents/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: statusArg }),
+      });
+      if (res.ok) void load();
+    },
+    [load],
+  );
+
+  const handleRefreshDashboard = useCallback(() => {
+    void load();
+  }, [load]);
+
+  const handleSignInGoogle = useCallback(() => {
+    void signIn("google", { callbackUrl: `/classroom/instructor/${sessionId}` });
+  }, [sessionId]);
+
+  const handleClassroomHome = useCallback(() => {
+    router.push("/classroom");
+  }, [router]);
 
   if (status === "loading") {
     return (
@@ -93,7 +109,7 @@ export default function InstructorDashboardPage() {
     return (
       <JudicialShell sidebar={<AppSidebarHome active="classroom" />}>
         <div className="p-8">
-          <Button type="button" onClick={() => signIn("google", { callbackUrl: `/classroom/instructor/${sessionId}` })}>
+          <Button type="button" onClick={handleSignInGoogle}>
             Sign in
           </Button>
         </div>
@@ -106,7 +122,7 @@ export default function InstructorDashboardPage() {
       <JudicialShell sidebar={<AppSidebarHome active="classroom" />}>
         <div className="mx-auto max-w-md space-y-4 p-8">
           <p className="text-destructive">{err}</p>
-          <Button type="button" variant="outline" onClick={() => router.push("/classroom")}>
+          <Button type="button" variant="outline" onClick={handleClassroomHome}>
             Classroom home
           </Button>
         </div>
@@ -127,18 +143,20 @@ export default function InstructorDashboardPage() {
 
   return (
     <JudicialShell sidebar={<AppSidebarHome active="classroom" />}>
-      <div className="mx-auto max-w-5xl space-y-6 px-4 py-8">
+      <main className="mx-auto max-w-5xl space-y-6 px-4 py-8" aria-labelledby="instructor-dashboard-title">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <p className="text-xs uppercase tracking-wider text-primary">Instructor dashboard</p>
-            <h1 className="font-heading text-2xl font-semibold md:text-3xl">{s.title}</h1>
+            <h1 id="instructor-dashboard-title" className="font-heading text-2xl font-semibold md:text-3xl">
+              {s.title}
+            </h1>
             <p className="mt-1 text-sm text-muted-foreground">
               Case: {s.caseTitle} · Room code{" "}
               <span className="font-mono font-semibold text-foreground">{s.roomCode}</span>
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button type="button" variant="outline" size="sm" className="gap-1" onClick={() => void load()}>
+            <Button type="button" variant="outline" size="sm" className="gap-1" onClick={handleRefreshDashboard}>
               <RefreshCw className="size-4" />
               Refresh
             </Button>
@@ -296,7 +314,7 @@ export default function InstructorDashboardPage() {
             Classroom home
           </Link>
         </div>
-      </div>
+      </main>
     </JudicialShell>
   );
 }
